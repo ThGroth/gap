@@ -1,5 +1,4 @@
-
-InstallMethod( Conjugators,
+InstallMethod(Conjugators,
 	"Gives List of Conjugators out of given group for two objects in 'Permutation Group'",
 	[ IsPermGroup, IsPerm, IsPerm],
   function(G, a, b )
@@ -11,7 +10,6 @@ InstallMethod( Conjugators,
 			fi;
 		od;
 		return L;
-  end;
+  end
 );
 
-InstallMethod(
