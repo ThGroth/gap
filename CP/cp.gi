@@ -14,10 +14,17 @@ InstallMethod(Conjugators,
 );
 
 InstallMethod(IteratedOrbit,
-	"Computes the Orbit of the second argument under <first>",
+	"Computes the Orbit of a word under <first>",
 	[ IsFRElement, IsList],
   function(a, L )
 		return Orbit(Group(a),L);
+  end
+);
+InstallMethod(IteratedOrbit,
+	"Computes the Orbit of the second argument under <first>",
+	[ IsFRElement, IsInt],
+  function(a, x )
+		return Orbit(Group(a),x);
   end
 );
 InstallMethod(LevelPermConj,
@@ -39,42 +46,60 @@ InstallMethod(LevelPermConj,
 InstallMethod(OrbitSignalizer,
 	"Returns the finite Orbit Signalizer for boundet Elements",
 	[IsBoundedFRElement],
-  function(a)
-  	local a_states,C,N,Pot_OS,i,j,elm,elmdescr,OS,prefix;
-
-#	if a=f then
-#		return [One(Grig),f,g,h,c];
-#	fi;
-#	if a=g then 
-#		return [One(Grig),f,g,h,c];
-#	fi;
-
-	a_states := States(a);
-	Add(a_states,One(a));
-	N := Size(a_states);
-	C := NormOfBoundedFRElement(a);
-
-	
-	OS := [];
-	for i in [0..N^C-1] do
-		elm := base_conversion(i,N);
-		prefix:= [];
-		for j in [1..C-Length(elm)] do
-			Add(prefix,0);
-		od;
-		elmdescr := Concatenation(prefix,elm);
-		elm := One(a);
-		for j in elmdescr do
-			elm := elm*a_states[j+1];
-		od;
-		#Test if elm in OS! TODO		
-		Add(OS,elm);
+#  function(a)
+#  	local a_states,C,N,Pot_OS,i,j,elm,elmdescr,OS,prefix;
+#
+#	a_states := States(a);
+#	Add(a_states,One(a));
+#	N := Size(a_states);
+#	C := NormOfBoundedFRElement(a);
+#
+#	
+#	OS := [];
+#	for i in [0..N^C-1] do
+#		elm := base_conversion(i,N);
+#		prefix:= [];
+#		for j in [1..C-Length(elm)] do
+#			Add(prefix,0);
+#		od;
+#		elmdescr := Concatenation(prefix,elm);
+#		elm := One(a);
+#		for j in elmdescr do
+#			elm := elm*a_states[j+1];
+#		od;
+#		#Test if elm in OS! TODO		
+#		Add(OS,elm);#
+#	od;
+# 	return OS;	
+#  end
+function(a)
+	local OS_list,i,OS_unvisited,OS_new,alphabet,elm,x,new,suc;
+	suc := function(state,x)
+		return  State(state^Size(IteratedOrbit(state,[x])),[x]);
+	end;
+	OS_list := [];
+	OS_unvisited := [a];
+	alphabet := Alphabet(a);
+	while Length(OS_unvisited) > 0 do
+		OS_new := [];
+		for elm in OS_unvisited do
+			for x in alphabet do
+				new := suc(elm,x);
+				if (not new in OS_list) and (not new in OS_unvisited) and (not new in OS_new) then
+					Add(OS_new,new);
+				fi;
+			od;
+			
+		od; 
+		Append(OS_list,OS_unvisited);
+		OS_unvisited := OS_new;
 	od;
- 	return OS;	
-  end
+	return OS_list;
+end
 );
 
-
+ 
+RedispatchOnCondition(Conjugate_FS,true,[IsFRElement,IsFRElement],[IsBoundedFRElement,IsBoundedFRElement],0); 
 InstallMethod(Conjugate_FS,
 	"Checks if two bounded automorphisms are Conjugate in FAut",
 	[ IsBoundedFRElement,IsBoundedFRElement],
@@ -105,7 +130,7 @@ InstallMethod(Conjugate_FS,
 						return v;
 					fi;
 				od;
-				#		Print("Not found...");
+						Print("Not found...");
 				#		ViewObj(vertex);
 				#		Print("\n");
 				return 0;
@@ -117,7 +142,7 @@ InstallMethod(Conjugate_FS,
 						return v;
 					fi;
 				od;
-				#		Print("Not found...");
+						Print("Not found...");
 				#		ViewObj(vertex);
 				#		Print("\n");
 				return 0;
@@ -130,7 +155,7 @@ InstallMethod(Conjugate_FS,
 						return v[4];
 					fi;
 				od;
-		#		Print("Not found...");
+				Print("Not found...");
 		#		ViewObj(vertex);
 		#		Print("\n");
 				return 0;
@@ -141,7 +166,7 @@ InstallMethod(Conjugate_FS,
 						return v[4];
 					fi;
 				od;
-				#		Print("Not found...");
+						Print("Not found...");
 				#		ViewObj(vertex);
 				#		Print("\n");
 				return 0;
@@ -162,7 +187,7 @@ InstallMethod(Conjugate_FS,
 				d := v[2];
 				pi := v[3];
 				O := Orbits(Group(c),Alph);
-				x := map(O,Minimum);
+				x := List(O,Minimum);
 				for i in [1..Length(O)] do
 					cprime := State(c^Length(O[i]),x[i]);
 					dprime := State(d^Length(O[i]),x[i]^pi);
@@ -177,6 +202,15 @@ InstallMethod(Conjugate_FS,
 					od;
 				od;
 			od;
+		#	Print("\n\n Vertices:");
+		#	for v in Psi do
+		#		Print(v[4],", ");
+		#	od;
+		#	Print("\n\n Edges:");
+		#	for v in Edges do
+		#		Print([v[1],v[2],v[3]],", ");
+		#	od;
+			
 			#Find Vertices with missing edges
 			change:=true;
 			while change do
@@ -185,7 +219,7 @@ InstallMethod(Conjugate_FS,
 				for v in Psi do
 					v_id := v[4];
 					O := Orbits(Group(v[1]),Alph);
-					x := map(O,Minimum);
+					x := List(O,Minimum);
 					found := [];
 					for e in Edges do
 						if e[1] = v_id then
@@ -196,6 +230,7 @@ InstallMethod(Conjugate_FS,
 					for i in x do
 						if not i in found then
 							all_found := false;
+							#Print("At Vertex ",v[4]," no Edge ",i," was found. So remove it.\n");
 							break;
 						fi;
 					od;
@@ -234,7 +269,7 @@ InstallMethod(Conjugate_FS,
 						sons[e[3]]:=e[2];
 						write[e[3]]:=e[3]^v[3]; #Use Action of the vertex
 				
-						Op:= Orbit(Group(v[1]),e[3]);
+						Op:= IteratedOrbit(v[1],e[3]);
 						O := List(Op);
 						Sort(O);
 						# O[1] = x1 = e[3]
@@ -276,6 +311,7 @@ InstallMethod(Conjugate_FS,
 		fi;
 		
 		v := Get_Some_Vertex(Vertices,[a,b]);
+		Print("Hier kommt ein Graph mit ",Length(Graph[1])," Knoten und ",Length(Graph[2])," Kanten. \nVertices:\n",Graph[1],"\nEdges:\n",Graph[2],"\n","Startknoten soll ",v," sein.");
 		Aut := Vertices_To_Automaton(Vertices,Graph[2],v);
 	
 	#	for v in Aut do
@@ -283,7 +319,10 @@ InstallMethod(Conjugate_FS,
 	#		ViewObj(v);
 	#		Print("\n\n");
 	#	od;
-	
+		if a^Aut = b then
+			Print("Alles wunderbar\n");
+		else Print ("Hm ein Fehler ist passiert\n");
+		fi;
 	return Aut;
 
   end
