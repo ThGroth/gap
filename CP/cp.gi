@@ -43,6 +43,7 @@ InstallMethod(LevelPermConj,
   end
 );
 
+RedispatchOnCondition(OrbitSignalizer,true,[IsFRElement],[IsBoundedFRElement],0);
 InstallMethod(OrbitSignalizer,
 	"Returns the finite Orbit Signalizer for boundet Elements",
 	[IsBoundedFRElement],
@@ -98,234 +99,255 @@ function(a)
 end
 );
 
- 
+InstallOtherMethod(OrbitSignalizer,
+	"Returns the finite Orbit Signalizer for boundet Elements",
+	[IsBoundedFRElement,IsString],
+function(a,s)
+	local OS_states,OS_Transitions,OS_Action,OS_states_unvisited,Elm_Ids,alphabet,OS_new,elm,elm_transitions,x, new, suc;
+	suc := function(state,x)
+		return  State(state^Size(IteratedOrbit(state,[x])),[x]);
+	end;
+	OS_states := [];
+	OS_Transitions := [];
+	OS_Action := [];
+	OS_states_unvisited := [a];
+	Elm_Ids := [a];
+	alphabet := Alphabet(a);
+	while Length(OS_states_unvisited) > 0 do
+		OS_new := [];
+		for elm in OS_states_unvisited do
+			elm_transitions := [];
+			for x in alphabet do
+				new := suc(elm,x);
+				if not new in Elm_Ids then
+					Add(OS_new,new);
+					Add(Elm_Ids,new);
+				fi;
+				Add(elm_transitions,[Position(Elm_Ids,new)]);
+			od;
+			Add(OS_Transitions,elm_transitions);
+			Add(OS_Action,Activity(elm));
+		od; 
+		Append(OS_states,OS_states_unvisited);
+		OS_states_unvisited := OS_new;
+	od;
+	return [OS_states,FRElement(OS_Transitions,OS_Action,[1])];
+end
+);
+
 RedispatchOnCondition(Conjugate_FS,true,[IsFRElement,IsFRElement],[IsBoundedFRElement,IsBoundedFRElement],0); 
 InstallMethod(Conjugate_FS,
 	"Checks if two bounded automorphisms are Conjugate in FAut",
 	[ IsBoundedFRElement,IsBoundedFRElement],
   function(a,b)
- 		local Graph, Vertices, v, h, Aut, PSI_Vertices, Get_Some_Vertex, Get_Vertex_By_Id, Find_Vertex_id, Conjugating_Graph, Vertices_To_Automaton;
- 		PSI_Vertices := function(a,b)
-			local OS_a, OS_b,V, c, d,CPI_cd, p, id;
-			OS_a := OrbitSignalizer(a);	
-			OS_b := OrbitSignalizer(b);
-			V := [];
-			id := 1;
-			for c in OS_a do
-				for d in OS_b do
-					CPI_cd := LevelPermConj(c,d);
-					for p in CPI_cd do
-						Add(V,[c,d,p,id]);
-						id := id+1;
-					od;
-				od;
+	local OS_a, OS_b, Vertices, Edges, c, d,CPI_cd, p, id, Alph, v, orbits, orb_repr, new_con_pair, new_action, new_v, change, found, e, all_found, i, j, tau, e_id, h, is_finished_subautom, Transitions, tran, orbit, New_Vertices, New_Edges, v_id, to_visit, AutomStates, start,actions,conjugator,Get_Vertex_by_Conj_Pair,Get_Vertex_by_Conj_Pair_and_action;
+	
+	
+
+	
+	
+	Alph := Alphabet(a);
+	OS_a := OrbitSignalizer(a);	
+	OS_b := OrbitSignalizer(b);
+	Vertices := [];
+	Edges := [];
+	#--------------------- Generate the Vertex list -------------------
+	v_id := 1;
+	for c in OS_a do
+		for d in OS_b do
+			CPI_cd := LevelPermConj(c,d);
+			for p in CPI_cd do
+				Add(Vertices,rec(	id:= v_id,
+													conj_pair := [c,d],
+													action := p));
+				v_id := v_id+1;
 			od;
-			return V;						
-		end;
-		#Given v_1, v_2 looks for a vertex (v1,v2,pi,id) for some pi,id
-		Get_Some_Vertex := function(Vertices, vertex)
+		od;
+	od;
+	#Print("Vertexlist generated\n");
+	
+	#Finds the first Vertex in Vertices with the given Conj_Pair. If There is no such Pair, false is returned.
+	Get_Vertex_by_Conj_Pair := function(Conj_Pair)
 		local v;
-				for v in Vertices do
-					if v[1]=vertex[1] and v[2] = vertex[2] then
-						return v;
-					fi;
-				od;
-						Print("Not found...");
-				#		ViewObj(vertex);
-				#		Print("\n");
-				return 0;
-		end;
-		Get_Vertex_By_Id := function(Vertices, id)
+		for v in Vertices do
+			if v.conj_pair = Conj_Pair then;
+				return v;
+			fi;
+		od;
+		#Error("Not found...");
+		return false;
+	end;
+	Get_Vertex_by_Conj_Pair_and_action := function(Conj_Pair,v_action)
 		local v;
-				for v in Vertices do
-					if v[4]=id then
-						return v;
-					fi;
-				od;
-						Print("Not found...");
-				#		ViewObj(vertex);
-				#		Print("\n");
-				return 0;
-		end;
-		Find_Vertex_id:= function (Vertices,vertex)
-			local v;
-			if Length(vertex) = 3 then
-				for v in Vertices do
-					if v[1]=vertex[1] and v[2] = vertex[2] and v[3] = vertex[3] then
-						return v[4];
-					fi;
-				od;
-				Print("Not found...");
-		#		ViewObj(vertex);
-		#		Print("\n");
-				return 0;
+		for v in Vertices do
+			if v.conj_pair = Conj_Pair and v.action = v_action then;
+				return v;
 			fi;
-			if Length(vertex) = 2 then
-				for v in Vertices do
-					if v[1]=vertex[1] and v[2] = vertex[2] then
-						return v[4];
-					fi;
-				od;
-						Print("Not found...");
-				#		ViewObj(vertex);
-				#		Print("\n");
-				return 0;
-			fi;
-			Print("Not a valid Vertex...");
-			ViewObj(vertex);
-			Print("\n");
-			return 0;
-		end;
-		Conjugating_Graph := function(a,b)
-			local Alph, Psi, e,Edges, v,v_id, c, d, pi, O, x, i, cprime, dprime, CPI_n, tau, change, del, found, all_found,new_v;
-			Alph := Alphabet(a);
-			Psi := PSI_Vertices(a,b);
-			Edges:= []; #Edges in Form (id_v1, id_v2, label)
-			for v in Psi do
-				v_id := v[4];
-				c := v[1];
-				d := v[2];
-				pi := v[3];
-				O := Orbits(Group(c),Alph);
-				x := List(O,Minimum);
-				for i in [1..Length(O)] do
-					cprime := State(c^Length(O[i]),x[i]);
-					dprime := State(d^Length(O[i]),x[i]^pi);
-					CPI_n := LevelPermConj(cprime,dprime);
-					for tau in CPI_n do
-						new_v := Find_Vertex_id(Psi,[cprime,dprime,tau]);
-						if new_v <> 0 then
-							Add(Edges,[v_id,new_v,x[i],c]);	
-						else
-							Print("Error the element is not in the vertex set!\n");
-						fi;
-					od;
-				od;
-			od;
-		#	Print("\n\n Vertices:");
-		#	for v in Psi do
-		#		Print(v[4],", ");
-		#	od;
-		#	Print("\n\n Edges:");
-		#	for v in Edges do
-		#		Print([v[1],v[2],v[3]],", ");
-		#	od;
-			
-			#Find Vertices with missing edges
-			change:=true;
-			while change do
-				change := false;
-				del := [];
-				for v in Psi do
-					v_id := v[4];
-					O := Orbits(Group(v[1]),Alph);
-					x := List(O,Minimum);
-					found := [];
-					for e in Edges do
-						if e[1] = v_id then
-							Add(found,e[3]);
-						fi;
-					od;
-					all_found := true;
-					for i in x do
-						if not i in found then
-							all_found := false;
-							#Print("At Vertex ",v[4]," no Edge ",i," was found. So remove it.\n");
-							break;
-						fi;
-					od;
-					if not all_found then
-						Add(del,v);
-						change:=true;
-					fi;
-				od;
-				if change then
-					#Delete this vertices
-					for d in del do
-						Remove(Psi,Position(Psi,d));
-					od;
-					#Delete all edges from or to this vertices
-					for i in [1..Length(del)] do
-						del[i] := del[i][4];
-					od;
-					for e in Immutable(Edges) do
-						if e[1] in del or e[2] in del then
-							Remove(Edges,Position(Edges,e));
-						fi;
-					od;
+		od;
+		#Error("Not found...");
+		return false;
+	end;
+	#--------------------- Find the Edges  -------------------
+	e_id := 1;
+	for v in Vertices do
+		#Print("Looking at ",v.id,"\n");
+		c := v.conj_pair[1];
+		d := v.conj_pair[2];
+		orbits := Orbits(Group(c),Alph);
+		#Print("orbits: ",orbits,"\n");
+		orb_repr := List(orbits,Minimum);
+		for i in [1..Length(orbits)] do
+			new_con_pair := [State(c^Length(orbits[i]),orb_repr[i]),State(d^Length(orbits[i]),orb_repr[i]^v.action)];
+			new_action := LevelPermConj(new_con_pair[1],new_con_pair[2]);
+			for tau in new_action do
+				new_v := Get_Vertex_by_Conj_Pair_and_action(new_con_pair,tau);
+				if new_v <> 0 then
+					#Print("Add Edge from ",v.id," to ",new_v.id," along ",orb_repr[i],"\n");
+					Add(Edges,rec(	from:=v.id,
+													to := new_v.id,
+													read := orb_repr[i],
+													write := orb_repr[i]^v.action,
+													id := e_id));
+					e_id := e_id +1;	
+				else
+					Error("Error the element is not in the vertex set!\n");
 				fi;
 			od;
-			return [Psi,Edges];
-		end;
-		Vertices_To_Automaton := function(Vertices,Edges,start)
-			local v, States,AutomStates, sons,s, e,O,Op,i, write, Transition, Outputs, newsons;
-			States := [];
-			AutomStates := [];
-			for v in Vertices do
-				sons:= [];
-				write := [];
+		od;
+	od;
+	#Print("Edges generated\n");
+	#Print("Very Long lists:\n\n","Vertices: ",Vertices,"\n\n Edges:",Edges,"\n");
+	
+	#--------------------- Delete dead Vertices  -------------------
+	change:=true;
+	while change do
+		change := false;
+		for v in Vertices do
+			orbits := Orbits(Group(v.conj_pair[1]),Alph);
+			orb_repr := List(orbits,Minimum);
+			found := [];
+			for e in Edges do
+				if e.from = v.id then
+					Add(found,e.read);
+				fi;
+			od;
+			#Are all outgoing edges there?
+			all_found := true;
+			for i in orb_repr do
+				if not i in found then
+					all_found := false;
+					#"At Vertex ",v[4]," no Edge ",i," was found. So remove it.\n");
+					break;
+				fi;
+			od;
+			if not all_found then
+				Unbind(Vertices[v.id]);
+				#Delete all Edges from or to the removed vertex
 				for e in Edges do
-					if e[1] = v[4] then
-						sons[e[3]]:=e[2];
-						write[e[3]]:=e[3]^v[3]; #Use Action of the vertex
-				
-						Op:= IteratedOrbit(v[1],e[3]);
-						O := List(Op);
-						Sort(O);
-						# O[1] = x1 = e[3]
-						for i in [2..Length(O)] do
-							sons[O[i]]:=e[2];
-							#Calculate action
-							write[O[i]] :=((O[i]^(State(v[1]^i,e[3])^(-1)))^v[3])^State(v[2]^i,e[3]^start[3]); 	
-						od;
+					if e.from = v.id or e.to = v.id then
+						Unbind(Edges[e.id]);
 					fi;
 				od;
-				Add(AutomStates,v[4]);
-				States[v[4]] := [v[4],v[1],v[2],v[3],sons,write];
+				change:=true;
+			fi;
+		od;
+	od;
+	#Print("Dead Vertices removed\n");
+	#Print("Complete Graph\n\n","Vertices: ",Vertices,"\n\n Edges:",Edges,"\n");
+	#--------------------- Check wheater a and b are conjugate ------
+	start := Get_Vertex_by_Conj_Pair([a,b]);
+	if start = false then
+		#a and b are not conjugate, so return false;
+		#Print("Kein Startknoten mehr");
+		return false;
+	fi;
+	#--------------------- Choose one subgraph, as automaton  -------------------
+	AutomStates := [start.id]; #Contains IDs of vertices, which build the subgraph
+	to_visit := [start.id]; 
+	while Length(to_visit) > 0 do 
+		new_v := [];
+		for i in to_visit do
+			v:= Vertices[i];
+			found := ShallowCopy(Alph);
+			for e in Edges do
+				if e.from = v.id then
+					if found[e.read] = true	then
+						Unbind(Edges[e.id]);
+					else 
+						found[e.read] := true;
+						if not e.to in AutomStates then
+							Add(new_v,Vertices[e.to].id);
+							Add(AutomStates,e.to);
+						fi;
+					fi;
+				fi;
 			od;
-			#Rename the States
-			Transition := [];
-			Outputs := [];
-			for v in States do
-				sons := v[5];
-				newsons:= [];
-				for s in sons do
-					Add(newsons,[Position(AutomStates,s)]);
-				od;
-				Add(Transition,newsons);
-				Add(Outputs,v[6]);
-			od;
-			start:=Position(AutomStates,start[4]);
-						
-			#return States;
-			
-			return FRElement(Transition,Outputs,[start]);
-		end;
-
-		Print("Computing Conjugating Graph..\n");
-		Graph := Conjugating_Graph(a,b);
-		Print("Done\n");
-		Vertices := Graph[1];
-		if Vertices = [] or Find_Vertex_id(Vertices,[a,b]) = 0 then
-			return false;
-		fi;
-		
-		v := Get_Some_Vertex(Vertices,[a,b]);
-		Print("Hier kommt ein Graph mit ",Length(Graph[1])," Knoten und ",Length(Graph[2])," Kanten. \nVertices:\n",Graph[1],"\nEdges:\n",Graph[2],"\n","Startknoten soll ",v," sein.");
-		Aut := Vertices_To_Automaton(Vertices,Graph[2],v);
+		od;
+		to_visit := new_v;
+	od;
+	#Print("Long lists:\n","Start: ",start.id,"\nAutomstates: ",AutomStates,"\n\n","Vertices: ",Vertices,"\n\n Edges:",Edges,"\n");
 	
-	#	for v in Aut do
-	#		Print("State ",v[1],": \n");
-	#		ViewObj(v);
-	#		Print("\n\n");
-	#	od;
-		if a^Aut = b then
-			Print("Alles wunderbar\n");
-		else Print ("Hm ein Fehler ist passiert\n");
+	#Print("Subgraph choosen\n");
+	#------------------- Shorten all Lists, and rename the ids s.t. they fit 
+	
+	New_Edges := [];
+	e_id := 1;
+	for e in Edges do
+		if e.from in AutomStates and e.to in AutomStates then
+			e.from := Position(AutomStates,e.from);
+			e.to := Position(AutomStates,e.to);
+			e.id := e_id;
+			Add(New_Edges,e);
+			e_id := e_id +1;	
 		fi;
-	return Aut;
+	od;
+	Edges := New_Edges;
+	v_id := 1;
+	New_Vertices := [];
+	for i in AutomStates do
+		v := Vertices[i];
+		v.id := v_id;
+		Add(New_Vertices,v);
+		v_id := v_id +1;
+	od;
+	Vertices := New_Vertices;
+	AutomStates := [1..Length(AutomStates)];
+	#Print("Short lists:\n","Automstates: ",AutomStates,"\n\n","Vertices: ",Vertices,"\n\n Edges:",Edges,"\n");
 
-  end
+	#------------------------- Generate Transitions ----------------------------
+	Transitions := [];
+	actions := [];
+	for i in AutomStates do
+		tran := [];
+		for e in Edges do
+			if e.from = i then
+				tran[e.read] := [e.to];
+				#Mark the missing edges in the orbit of e.read under c
+				c := Vertices[i].conj_pair[1];
+				d := Vertices[i].conj_pair[2];
+				orbit:=IteratedOrbit(c,e.read);
+				for j in [2..Length(orbit)] do
+					tran[orbit[j]] := [State(c^(j-1),e.read)^(-1),e.to,State(d^(j-1),e.read^(Vertices[i].action))];
+				od;
+			fi;
+		od;
+		Add(Transitions,tran);
+		Add(actions,Vertices[i].action);
+	od;
+	#Print("Transitions generated\n");
+	#Print("transitions: \n", Transitions,"\n");
+	
+	
+	
+	conjugator := FRElement(Transitions,actions,[start.id]);
+	#Print("Short check, if everything is OK.\n");
+	if a^conjugator = b then
+		return conjugator;
+	else
+		Print("Komischer Fehler...\n");
+		return false;
+	fi;
+end
 );
 
 
