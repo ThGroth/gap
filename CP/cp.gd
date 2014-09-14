@@ -1,5 +1,5 @@
-DeclareOperation("Conjugators", [ IsPermGroup, IsPerm, IsPerm]);
+BindGlobal("AlreadyRead@",true);
+
 DeclareOperation("IteratedOrbit", [ IsFRElement, IsObject]);
-DeclareOperation("LevelPermConj", [ IsFRElement, IsFRElement]);
-DeclareOperation("OrbitSignalizer", [ IsFRElement]);
-DeclareOperation("Conjugate_FS", [ IsFRElement,IsFRElement]);
+DeclareAttribute("OrbitSignalizer", IsFRElement);
+
