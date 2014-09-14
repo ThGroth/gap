@@ -1,3 +1,66 @@
+#write m in Base n
+base_conversion := function(m,n)
+	local res;
+	res:= [];
+	while (m>=n) do
+		Add(res,m mod n);
+		m := Int(m/n);
+	od;
+	Add(res,m);
+	return Reversed(res);
+end;
+
+#G is assumed to contain the inverses
+Find_word_with_property:= function(G,prop,radius)
+	local i, j, offset, word, element;
+	offset := Size(G)^radius;
+	for i in [0..Size(G)^radius-1] do
+		word := base_conversion(offset + i,Size(G));
+		word := List(word{[2..Size(word)]},x -> x+1);
+		
+		element := One(G[1]);
+		for j in word do
+			element := element*G[j];
+		od;
+		if prop(element) then
+			return word;
+		fi;
+	od;
+	return fail;
+end;
+				
+Grig_element_as_word_over_G := function(e,G,Fam)
+	local G_new,G_with_inverse,g,radius,result,translate_inverse;
+	if Size(G) = 0 then
+		return fail;
+	fi;
+	G_new := [];
+	for g in G do
+		if not g^-1 in G then
+			Add(G_new,g^-1);
+		fi;
+	od;
+	translate_inverse := function(t)
+		if t > Size(G) then 
+			return -1*Position(G,G_new[t-Size(G)]^-1);
+		fi;
+		return t;
+	end;
+	
+	G_with_inverse := Concatenation(G,G_new);
+	radius:=1;
+	while(true) do
+		Print("Check at radius: ",radius,".\n");
+		result:=Check_Prop_on_words(G_with_inverse,g -> e=g,radius);
+		if result <> fail then
+			return AssocWordByLetterRep(Fam,List(result,translate_inverse));
+		fi;
+		radius := radius +1;
+	od;
+	
+end;
+
+
 alternating_a_form := function(w)
 	local a,b,c,d,i,j,k,L,red_L,change,last,last_ind;
 	#Given w as Word
@@ -42,9 +105,12 @@ alternating_a_form := function(w)
 		od;
 	od;
 	return AssocWordByLetterRep(FamilyObj(w),red_L);
-end;
+end;#
+#Computes a unique representative coset element of w*L.
+#The computed Element is of the form (a*d)^i*a^j ,i\in[0..3],j\in[0,1]
 L_representant := function(w)
-	local a,b,c,d,k,l,L,red_L,new_L,change;
+	local a,b,c,d,k,l,L,red_L,new_L,change,Fam;
+	Fam := FamilyObj(w);
 	w:=alternating_a_form(w);
 	a:=4;
 	b:=1;
@@ -55,7 +121,7 @@ L_representant := function(w)
 		change := false;
 		new_L := [];
 		red_L:=List(LetterRepAssocWord(w),AbsInt);
-		Print("red_L: ",red_L,"\n");
+		#Print("red_L: ",red_L,"\n");
 		
 		for l in red_L do
 			if l = b then
@@ -66,7 +132,14 @@ L_representant := function(w)
 			else Add(new_L,l);
 			fi;
 		od;
-		w :=	alternating_a_form(AssocWordByLetterRep(FamilyObj(w),new_L));
+		#Force the form unique beginning with a.
+		w :=	alternating_a_form(AssocWordByLetterRep(Fam,new_L));
+		if Length(w)>0 and Subword(w,1,1) = AssocWordByLetterRep(Fam,[d]) then
+			w := AssocWordByLetterRep(Fam,[a,d,a,d,a,d,a])*w;
+		fi;
+		if Length(w)>7 then 
+			w:=Subword(w,1,Length(w) mod 8);
+		fi;
 	od;
 	return w;
 end;
@@ -82,7 +155,7 @@ K_representant := function(w)
 		change := false;
 		new_L := [];
 		red_L:=List(LetterRepAssocWord(w),AbsInt);
-		Print("red_L: ",red_L,"\n");
+		#Print("red_L: ",red_L,"\n");
 		
 		nb := 0;
 		for l in red_L do
@@ -115,24 +188,23 @@ conjugate_to_a := function (g)
 	fi;
 	g1 := State(g,1);
 	g1_modL:=L_representant(g1![2]);
-	Allowed_reps:= [AssocWordByLetterRep(FamilyObj(g![2]),[]),AssocWordByLetterRep(FamilyObj(g![2]),[a,d]),AssocWordByLetterRep(FamilyObj(g![2]),[d,a]),AssocWordByLetterRep(FamilyObj(g![2]),[a,d,a,d])];
-	Connected_conjs := [One(g),FRElement(g![1],AssocWordByLetterRep(FamilyObj(g![2]),[c])),FRElement(g![1],AssocWordByLetterRep(FamilyObj(g![2]),[a,c])),FRElement(g![1],AssocWordByLetterRep(FamilyObj(g![2]),[c,a,c]))];
+	Allowed_reps:= List([[],[a,d],[a,d,a,d,a,d],[a,d,a,d]],x -> AssocWordByLetterRep(FamilyObj(g![2]),x));
+	Connected_conjs := List([[],[c],[a,c],[c,a,c]],x ->FRElement(g![1],AssocWordByLetterRep(FamilyObj(g![2]),x)));
 	if not g1_modL in Allowed_reps then
 		return false;
 	fi;
 	con_con := Connected_conjs[Position(Allowed_reps,g1_modL)];
-	Print("Position: ",Position(Allowed_reps,g1_modL),"\n");
-	Print("Cnnected... :",Connected_conjs,"\n");
-	Print("con_con: ",con_con,"\n");
-	Print("g1_modL: ",g1_modL,"\n");
-	Print("g1: ",g1,"\n");
+
 	g1_modL := FRElement(g![1],g1_modL);
-	Print("g1:modL_fr: ",g1_modL,"\n");
+
 	con :=FRElement([[[g1*g1_modL^-1],[]]],[()],[1])*con_con;
-	K_reprent
-	return 
+	con := K_representant(Grig_element_as_word_over_G(con,List([[b],[c],[d],[a]],x ->FRElement(g![1],AssocWordByLetterRep(FamilyObj(g![2]),x))),Fam));
+	return con;
 end;	
 
+
+
+#Forget about this.... there is allot work to do left...
 conjugators_grig_rek := function(g,h)
 	local a,b,c,d,wg,wh,L1,L2,ae,be,ce,de,x_1,x_2,Alph;
 	
