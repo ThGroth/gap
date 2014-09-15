@@ -262,10 +262,11 @@ end);
 MAKE_READ_WRITE_GLOBAL("CONJUGATORS_FINITE_STATE_WRAPPER@");
 UNBIND_GLOBAL("CONJUGATORS_FINITE_STATE_WRAPPER@");
 BindGlobal("CONJUGATORS_FINITE_STATE_WRAPPER@",function(start,CG)
-	local v,AS,to_visit, new_v, i, found, e, Tran, Act, c,d, orbit;
+	local v,AS,to_visit, Alph, new_v, i, found, e, Tran, Act, c,d, orbit;
 			#--------- Choose one subgraph, as automaton  ---------
 			AS := [start.id]; #Contains IDs of vertices, which build the subgraph
 			to_visit := [start.id]; 
+			Alph := Alphabet(start.conj_pair[1]);
 			while Length(to_visit) > 0 do 
 				new_v := [];
 				for i in to_visit do
@@ -296,13 +297,13 @@ BindGlobal("CONJUGATORS_FINITE_STATE_WRAPPER@",function(start,CG)
 			od;
 			for e in CG[2] do
 				if e.from in AS and e.to in AS then
-					Tran[Position(AS,e.from)][Position(Alphabet(a),e.read)] := [Position(AS,e.to)];
+					Tran[Position(AS,e.from)][Position(Alph,e.read)] := [Position(AS,e.to)];
 					c := CG[1][e.from].conj_pair[1];
 					d := CG[1][e.from].conj_pair[2];
 					orbit := IteratedOrbit(c,e.read);
 					for i in [2..Length(orbit)] do
 					#The missing edges...
-						Tran[Position(AS,e.from)][Position(Alphabet(a),orbit[i])] := [State(c^(i-1),e.read)^(-1),Position(AS,e.to),State(d^(i-1),e.read^(CG[1][e.from].action))];
+						Tran[Position(AS,e.from)][Position(Alph,orbit[i])] := [State(c^(i-1),e.read)^(-1),Position(AS,e.to),State(d^(i-1),e.read^(CG[1][e.from].action))];
 					od;
 				fi;
 			od;
