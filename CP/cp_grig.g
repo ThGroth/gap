@@ -422,7 +422,7 @@ end;
 
 
 #Forget about this.... there is allot work to do left... And now I will start!
-conjugators_grig_rek := function(h,g)
+conjugators_grig_rek := function(g,h)
 	local a,b,c,d,i,wg,wh,L1,L2,ae,be,ce,de,aw,dw,x,x_1,x_2,Alph,Centr_a,Centr_bc,Centr_d,K_repr,K_repr_words,D,res_Con,Fam,FR_Fam;
 	Info(InfoFRCP,2,"Compute Conjugator for pair: ",h,",",g,".\n");
 	if Activity(g) <> Activity(h) then
@@ -466,8 +466,8 @@ conjugators_grig_rek := function(h,g)
 		fi;
 	fi;
 	if (g=ae) then
-		return conjugate_to_a(h);
-		#return List(conjugate_to_a(h),x->x^-1);
+		#return conjugate_to_a(h);
+		return List(conjugate_to_a(h),x->x^-1);
 	fi;
 	if g in [be,ce,de] then
 		if h in [be,ce,de,One(h),ae] then
@@ -476,8 +476,8 @@ conjugators_grig_rek := function(h,g)
 		D:= List([[],[c],[c,a,c,a],[c,a,c,a,c],[c,a,c,a,c,a,c,a],[c,a,c,a,c,a,c,a,c],[c,a,c,a,c,a,c,a,c,a,c,a],[c,a,c,a,c,a,c,a,c,a,c,a,c],[a,d,a],[a,d,a,c],[a,d,a,c,a,c,a],[a,d,a,c,a,c,a,c],[a,d,a,c,a,c,a,c,a,c,a],[a,d,a,c,a,c,a,c,a,c,a,c],[a,d,a,c,a,c,a,c,a,c,a,c,a,c,a],[a,d,a,c,a,c,a,c,a,c,a,c,a,c,a,c]],x->AssocWordByLetterRep(Fam,x));
 		
 		#Test for Conjugator with trivial Activity
-		L1 := conjugators_grig_rek(State(h,x_1),State(g,x_1));
-		L2 := conjugators_grig_rek(State(h,x_2),State(g,x_2));
+		L1 := conjugators_grig_rek(State(g,x_1),State(h,x_1));
+		L2 := conjugators_grig_rek(State(g,x_2),State(h,x_2));
 		Info(InfoFRCP,3,"  Sub Conjugatoren ",State(h,x_1),",",State(g,x_1)," : ",L1,"\n");
 		Info(InfoFRCP,3,"  Sub Conjugatoren ",State(h,x_2),",",State(g,x_2)," : ",L2,"\n");
 		#See Lemma 6.16 for <g1,g2<in Grig,  <=> g1=v(a,d)l g2=v(d,a)l
@@ -517,8 +517,8 @@ conjugators_grig_rek := function(h,g)
 			return res_Con;
 		fi;
 		#Test for Conjugator with non-trivial Activity
-		L1 := conjugators_grig_rek(State(h,x_1),State(g,x_2));
-		L2 := conjugators_grig_rek(State(h,x_2),State(g,x_1));
+		L1 := conjugators_grig_rek(State(g,x_1),State(h,x_2));
+		L2 := conjugators_grig_rek(State(g,x_2),State(h,x_1));
 		res_Con := [];
 		Info(InfoFRCP,3,"  Sub Conjugatoren ",State(h,x_1),",",State(g,x_2)," mit Tau: ",L1,"\n");
 		Info(InfoFRCP,3,"  Sub Conjugatoren ",State(h,x_2),",",State(g,x_1)," mit Tau: ",L2,"\n");
@@ -559,8 +559,8 @@ conjugators_grig_rek := function(h,g)
 	#So g is a word of length >1:
 	if IsOne(Activity(g)) then
 	#Test for Conjugator with trivial Activity
-		L1 := conjugators_grig_rek(State(h,x_1),State(g,x_1));
-		L2 := conjugators_grig_rek(State(h,x_2),State(g,x_2));
+		L1 := conjugators_grig_rek(State(g,x_1),State(h,x_1));
+		L2 := conjugators_grig_rek(State(g,x_2),State(h,x_2));
 		Info(InfoFRCP,3,"  Sub Conjugatoren ",State(h,x_1),",",State(g,x_1)," : ",L1,"\n");
 		Info(InfoFRCP,3,"  Sub Conjugatoren ",State(h,x_2),",",State(g,x_2)," : ",L2,"\n");
 		#See Lemma 6.16 for <g1,g2<in Grig,  <=> g1=v(a,d)l g2=v(d,a)l
@@ -600,8 +600,8 @@ conjugators_grig_rek := function(h,g)
 			return res_Con;
 		fi;
 		#Test for Conjugator with non-trivial Activity
-		L1 := conjugators_grig_rek(State(h,x_1),State(g,x_2));
-		L2 := conjugators_grig_rek(State(h,x_2),State(g,x_1));
+		L1 := conjugators_grig_rek(State(g,x_1),State(h,x_2));
+		L2 := conjugators_grig_rek(State(g,x_2),State(h,x_1));
 		res_Con := [];
 		Info(InfoFRCP,3,"  Sub Conjugatoren ",State(h,x_1),",",State(g,x_2)," mit Tau: ",L1,"\n");
 		Info(InfoFRCP,3,"  Sub Conjugatoren ",State(h,x_2),",",State(g,x_1)," mit Tau: ",L2,"\n");
@@ -648,7 +648,7 @@ conjugators_grig_rek := function(h,g)
 			return [];
 		fi;
 				#Test for Conjugator with trivial Activity
-		L1 := conjugators_grig_rek(State(h,x_1)*State(h,x_2),State(g,x_1)*State(g,x_2));
+		L1 := conjugators_grig_rek(State(g,x_1)*State(g,x_2),State(h,x_1)*State(h,x_2));
 		Info(InfoFRCP,3,"  Sub Conjugatoren ",State(h,x_1),",",State(g,x_1)," : ",L1,"\n");
 		Info(InfoFRCP,3,"  Sub Conjugatoren ",State(h,x_2),",",State(g,x_2)," : ",L2,"\n");
 		#See Lemma 6.16 for <g1,g2<in Grig,  <=> g1=v(a,d)l g2=v(d,a)l
@@ -735,8 +735,6 @@ Conjugators_Grig := function(g,h)
 		if g^r<>h then
 		 Print("nicht alles so gut....\n");
 		 Print("Problem bei ",Position(Res,r),"\n");
-		else
-			Print("soweit noch alles gut...\n");
 		fi;		
 	od;
 	if Size(Res) = 0 then
