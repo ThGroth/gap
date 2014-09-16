@@ -1,5 +1,8 @@
+InfoFRCP := NewInfoClass("InfoFRCP");
+SetInfoLevel(InfoFR, 1);
+
 if not IsBound(AlreadyRead@) then
-	ReadPackage("fr","gap/cp/cp.gd");
+	ReadPackage("fr","gap/CP/cp.gd");
 fi;
-ReadPackage("fr","gap/cp/cp.gi");
-ReadPackage("fr","gap/cp/examples.g");
+ReadPackage("fr","gap/CP/cp.gi");
+ReadPackage("fr","gap/CP/examples.g");
