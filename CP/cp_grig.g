@@ -416,24 +416,15 @@ conjugate_to_a := function (g)
 	od;
 	return Con_tuple;
 end;	
-
-
-
-
-
-#Forget about this.... there is allot work to do left... And now I will start!
-conjugators_grig_rek := function(g,h)
-	local a,b,c,d,i,wg,wh,L1,L2,ae,be,ce,de,aw,dw,x,x_1,x_2,Alph,Centr_a,Centr_bc,Centr_d,K_repr,K_repr_words,D,res_Con,Fam,FR_Fam;
-	Info(InfoFRCP,2,"Compute Conjugator for pair: ",h,",",g,".\n");
-	if Activity(g) <> Activity(h) then
-		return [];
-	fi;
-	a:=4;
-	b:=1;
-	c:=2;
-	d:=3;
-	Fam:=FamilyObj(g![2]);
-	FR_Fam := g![1];
+GRIG_CON := function(g,h)
+local a,b,c,d,Fam,FR_Fam,aw,dw,ae,be,ce,de,Alph,x_1,x_2,K_repr,K_repr_words,D,Merge_Ls,conjugators_grig_rek,Res,r;
+################################       (Local) GLOBALS           ####################################
+	a:= 4;
+	b:= 1;
+	c:= 2;
+	d:= 3;
+	Fam := FamilyObj(g![2]);
+	FR_Fam:= g![1];
 	aw :=AssocWordByLetterRep(Fam,[a]);  
 	dw :=AssocWordByLetterRep(Fam,[d]);
 	ae := FRElement(FR_Fam,AssocWordByLetterRep(Fam,[a]));
@@ -443,306 +434,166 @@ conjugators_grig_rek := function(g,h)
 	Alph:=Alphabet(g);
 	x_1 := Alph[1];
 	x_2 := Alph[2];
+	#Precomputed K-representatives:
 	K_repr := [[],[a],[a,d],[a,d,a],[a,d,a,d],[a,d,a,d,a],[a,d,a,d,a,d],[a,d,a,d,a,d,a],[b],[b,a],[b,a,d],[b,a,d,a],[b,a,d,a,d],[b,a,d,a,d,a],[b,a,d,a,d,a,d],[b,a,d,a,d,a,d,a]];
-	
 	K_repr_words := List(K_repr,x->AssocWordByLetterRep(Fam,x));
-	Centr_a := [[],[a],,,[a,d,a,d],[a,d,a,d,a],,,,,,,,,,];
-	Centr_bc := [[],,,,,,,[a,d,a,d,a,d,a],[b],,,,,,,[b,a,d,a,d,a,d,a]];
-	Centr_d := [[],,,[a,d,a],[a,d,a,d],,,[a,d,a,d,a,d,a],[b],,,[b,a,d,a],[b,a,d,a,d],,,[b,a,d,a,d,a,d,a]];
-	if IsOne(g) then
-		if IsOne(h) then
-			return List(K_repr,x -> FRElement(FR_Fam,AssocWordByLetterRep(Fam,x)));
+	
+	#Precomputed words, which decompose to the K_repr.: <K_repr[i]·l,f(K_repr[i])·l'> = D[i]·<l,l'>
+	D:= List([[],[c],[c,a,c,a],[c,a,c,a,c],[c,a,c,a,c,a,c,a],[c,a,c,a,c,a,c,a,c],[c,a,c,a,c,a,c,a,c,a,c,a],[c,a,c,a,c,a,c,a,c,a,c,a,c],[a,d,a],[a,d,a,c],[a,d,a,c,a,c,a],[a,d,a,c,a,c,a,c],[a,d,a,c,a,c,a,c,a,c,a],[a,d,a,c,a,c,a,c,a,c,a,c],[a,d,a,c,a,c,a,c,a,c,a,c,a,c,a],[a,d,a,c,a,c,a,c,a,c,a,c,a,c,a,c]],x->AssocWordByLetterRep(Fam,x));
+
+	Merge_Ls := function(L1,L2,with_action)
+		local aw_w,aw_t,dw_w,res_Con,i;	
+		aw_w := One(aw);
+		aw_t := ();
+		dw_w := One(dw);
+		if with_action then
+			aw_w := aw;
+			aw_t := (x_1,x_2);
 		fi;
+		Info(InfoFRCP,3,"Computing ",g,",",h,"  Sub Conjugators: ",L1,"\n");
+		Info(InfoFRCP,3,"Computing ",g,",",h,"  Sub Conjugators: ",L2,"\n");
+		#See Lemma 6.16 for <g1,g2<in Grig,  <=> g1=v(a,d)l g2=v(d,a)l
+		#So <K_repr[i],K_repr[j]> in Grig  <=> j in [17-x mod 16 +1, 25-x mod 16 +1]
+		res_Con := [];
+		for i in [1..16] do
+			if IsBound(L1[i]) then
+				#Find second entry:
+				for x in [((17-i) mod 16) +1,((25-i) mod 16) +1] do
+					if IsBound(L2[x]) then
+						if x>8 then
+							dw_w := dw;
+						else
+							dw_w := One(dw);
+						fi;
+						Info(InfoFRCP,3,"Computing ",g,",",h,"  Conjugator found:",i,",",x,"\n");
+						#Info(InfoFRCP,3,"Computing ",g,",",h,"    Found Elm: ",dw_w*D[i],"\n");
+						#Info(InfoFRCP,3,"Computing ",g,",",h,"    corresp. Rep: ",K_representant(dw_w*D[i]),"\n");
+						#Info(InfoFRCP,3,"Computing ",g,",",h,"    Insert at position: ",Position(K_repr_words,K_representant(dw_w*D[i])),"\n");
+						if L1[i]=FRElement(FR_Fam,K_repr_words[i]) and L2[x]=FRElement(FR_Fam,K_repr_words[x]) then
+							res_Con[Position(K_repr_words,K_representant(dw_w*D[i]*aw_w))] := FRElement(FR_Fam,dw_w*D[i]*aw_w);
+						else #Could always compute the words as generators, but seems uneccassary
+							res_Con[Position(K_repr_words,K_representant(dw_w*D[i]*aw_w))] := FRElement([[[L1[i]],[L2[x]]]],[aw_t],[1]);
+						fi;
+					fi;
+				od;
+			fi;
+		od;
+		return res_Con;
+	end;
+
+	conjugators_grig_rek := function(g,h)
+		local Centr_bc, Centr_d, L1, L2, res_Con, g1, h1, x;
+		Info(InfoFRCP,2,"Compute Conjugator for pair: ",g,",",h,".\n");
+		if Activity(g) <> Activity(h) then
 			return [];
-	fi;
-	if g in [be,ce] then
-		if h=g then
-			return List(Centr_bc,x -> FRElement(FR_Fam,AssocWordByLetterRep(Fam,x)));
 		fi;
-	fi;
-	if g = de then
-		if h=g then
-			return List(Centr_d,x -> FRElement(FR_Fam,AssocWordByLetterRep(Fam,x)));
+		#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-   g = identity   -#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
+		if IsOne(g) then
+			if IsOne(h) then
+				return List(K_repr,x -> FRElement(FR_Fam,AssocWordByLetterRep(Fam,x)));
+			fi;
+				return [];
 		fi;
-	fi;
-	if (g=ae) then
-		#return conjugate_to_a(h);
-		return List(conjugate_to_a(h),x->x^-1);
-	fi;
-	if g in [be,ce,de] then
-		if h in [be,ce,de,One(h),ae] then
-			return []; #As g=h already considered in an earlier case
+		#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-   g in a,b,c,d    -#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
+		if g in [be,ce] then
+			if h=g then
+				Centr_bc := [[],,,,,,,[a,d,a,d,a,d,a],[b],,,,,,,[b,a,d,a,d,a,d,a]];
+				return List(Centr_bc,x -> FRElement(FR_Fam,AssocWordByLetterRep(Fam,x)));
+			fi;
 		fi;
-		D:= List([[],[c],[c,a,c,a],[c,a,c,a,c],[c,a,c,a,c,a,c,a],[c,a,c,a,c,a,c,a,c],[c,a,c,a,c,a,c,a,c,a,c,a],[c,a,c,a,c,a,c,a,c,a,c,a,c],[a,d,a],[a,d,a,c],[a,d,a,c,a,c,a],[a,d,a,c,a,c,a,c],[a,d,a,c,a,c,a,c,a,c,a],[a,d,a,c,a,c,a,c,a,c,a,c],[a,d,a,c,a,c,a,c,a,c,a,c,a,c,a],[a,d,a,c,a,c,a,c,a,c,a,c,a,c,a,c]],x->AssocWordByLetterRep(Fam,x));
-		
+		if g = de then
+			if h=g then
+				Centr_d := [[],,,[a,d,a],[a,d,a,d],,,[a,d,a,d,a,d,a],[b],,,[b,a,d,a],[b,a,d,a,d],,,[b,a,d,a,d,a,d,a]];
+				return List(Centr_d,x -> FRElement(FR_Fam,AssocWordByLetterRep(Fam,x)));
+			fi;
+		fi;
+		if g=ae then
+			return List(conjugate_to_a(h),x->x^-1);
+		fi;
+		if g in [be,ce,de] then
+			if h in [be,ce,de,One(h),ae] then
+				return []; #As g=h already considered in an earlier case
+			fi;
+			#----------------------------------    |h|>1     ----------------------------------------------
+			#Test for Conjugator with trivial Activity
+			L1 := conjugators_grig_rek(State(g,x_1),State(h,x_1));
+			if Size(L1) > 0 then
+				L2 := conjugators_grig_rek(State(g,x_2),State(h,x_2));
+				res_Con := Merge_Ls(L1,L2,false);
+				if Size(res_Con) >0 then
+					return res_Con;
+				fi;
+			fi;		
+
+			#Test for Conjugator with non-trivial Activity
+			L1 := conjugators_grig_rek(State(g,x_1),State(h,x_2));
+			if Size(L1) = 0 then
+				return [];
+			fi;
+			L2 := conjugators_grig_rek(State(g,x_2),State(h,x_1));
+			return Merge_Ls(L1,L2,true);
+		fi;
+		#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-    |g| > 1, act(g) = 1    -#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
+		if IsOne(Activity(g)) then
 		#Test for Conjugator with trivial Activity
-		L1 := conjugators_grig_rek(State(g,x_1),State(h,x_1));
-		L2 := conjugators_grig_rek(State(g,x_2),State(h,x_2));
-		Info(InfoFRCP,3,"  Sub Conjugatoren ",State(h,x_1),",",State(g,x_1)," : ",L1,"\n");
-		Info(InfoFRCP,3,"  Sub Conjugatoren ",State(h,x_2),",",State(g,x_2)," : ",L2,"\n");
-		#See Lemma 6.16 for <g1,g2<in Grig,  <=> g1=v(a,d)l g2=v(d,a)l
-		#So <K_repr[i],K_repr[j]> in Grig  <=> j in [17-x mod 16 +1, 25-x mod 16 +1]
-		res_Con := [];
-		for i in [1..16] do
-			if IsBound(L1[i]) then
-				#Find second entry:
-				for x in [((17-i) mod 16) +1,((25-i) mod 16) +1] do
-					if IsBound(L2[x]) then
-						if x>8 then
-							Info(InfoFRCP,3,"  Conjugator gefunden mit Tau :",i,",",x,"\n");
-							Info(InfoFRCP,3,"    Gefundens Elm: ",dw*D[i],"\n");
-							Info(InfoFRCP,3,"    zugehöriger Rep: ",K_representant(dw*D[i]),"\n");
-							Info(InfoFRCP,3,"    Eingefügt an Position: ",Position(K_repr_words,K_representant(dw*D[i])),"\n");
-							if L1[i]=FRElement(FR_Fam,K_repr_words[i]) and L2[x]=FRElement(FR_Fam,K_repr_words[x]) then
-								res_Con[Position(K_repr_words,K_representant(dw*D[i]))] := FRElement(FR_Fam,dw*D[i]);
-							else #Could always compute the words as generators, but seems uneccassary
-								res_Con[Position(K_repr_words,K_representant(dw*D[i]))] := FRElement([[[L1[i]],[L2[x]]]],[()],[1]);
-							fi;
-						else 
-							Info(InfoFRCP,3,"  Conjugator gefunden mit Tau :",i,",",x,"\n");
-							Info(InfoFRCP,3,"     Gefundens Elm: ",D[i],"\n");
-							Info(InfoFRCP,3,"     zugehöriger Rep: ",K_representant(D[i]),"\n");
-							Info(InfoFRCP,3,"     Eingefügt an Position: ",Position(K_repr_words,K_representant(D[i])),"\n");
-							if L1[i]=FRElement(FR_Fam,K_repr_words[i]) and L2[x]=FRElement(FR_Fam,K_repr_words[x]) then
-								res_Con[Position(K_repr_words,K_representant(D[i]))] := FRElement(FR_Fam,D[i]);
-							else								
-								res_Con[Position(K_repr_words,K_representant(D[i]))] := FRElement([[[L1[i]],[L2[x]]]],[()],[1]);
-							fi;
-						fi;
-					fi;
-				od;
+			L1 := conjugators_grig_rek(State(g,x_1),State(h,x_1));
+			if Size(L1) > 0 then
+				L2 := conjugators_grig_rek(State(g,x_2),State(h,x_2));
+				res_Con := Merge_Ls(L1,L2,false);
+				if Size(res_Con) >0 then
+					return res_Con;
+				fi;
+			fi;	
+			#Test for Conjugator with non-trivial Activity
+			L1 := conjugators_grig_rek(State(g,x_1),State(h,x_2));
+			if Size(L1) = 0 then
+				return [];
 			fi;
-		od;
-		if Size(res_Con) >0 then
-			return res_Con;
-		fi;
-		#Test for Conjugator with non-trivial Activity
-		L1 := conjugators_grig_rek(State(g,x_1),State(h,x_2));
-		L2 := conjugators_grig_rek(State(g,x_2),State(h,x_1));
-		res_Con := [];
-		Info(InfoFRCP,3,"  Sub Conjugatoren ",State(h,x_1),",",State(g,x_2)," mit Tau: ",L1,"\n");
-		Info(InfoFRCP,3,"  Sub Conjugatoren ",State(h,x_2),",",State(g,x_1)," mit Tau: ",L2,"\n");
-		for i in [1..16] do
-			if IsBound(L1[i]) then
-				#Find second entry:
-				for x in [((17-i) mod 16) +1,((25-i) mod 16) +1] do
-					if IsBound(L2[x]) then
-						if x>8 then
-							Info(InfoFRCP,3,"  Conjugator gefunden mit Tau :",i,",",x,"\n");
-							Info(InfoFRCP,3,"    Gefundens Elm: ",dw*D[i]*aw,"\n");
-							Info(InfoFRCP,3,"    zugehöriger Rep: ",K_representant(dw*D[i]*aw),"\n");
-							Info(InfoFRCP,3,"    Eingefügt an Position: ",Position(K_repr_words,K_representant(dw*D[i]*aw)),"\n");
-							if L1[i]=FRElement(FR_Fam,K_repr_words[i]) and L2[x]=FRElement(FR_Fam,K_repr_words[x]) then
-								res_Con[Position(K_repr_words,K_representant(dw*D[i]*aw))] := FRElement(FR_Fam,dw*D[i]*aw);
-							else							
-								res_Con[Position(K_repr_words,K_representant(dw*D[i]*aw))] := FRElement([[[L1[i]],[L2[x]]]],[(1,2)],[1]);
-							fi;
-						else 
-							Info(InfoFRCP,3,"  Conjugator gefunden mit Tau :",i,",",x,"\n");
-							Info(InfoFRCP,3,"    Gefundens Elm: ",D[i]*aw,"\n");
-							Info(InfoFRCP,3,"    zugehöriger Rep: ",K_representant(D[i]*aw),"\n");
-							Info(InfoFRCP,3,"    Eingefügt an Position: ",Position(K_repr_words,K_representant(D[i]*aw)),"\n");
-							if L1[i]=FRElement(FR_Fam,K_repr_words[i]) and L2[x]=FRElement(FR_Fam,K_repr_words[x]) then
-								res_Con[Position(K_repr_words,K_representant(D[i]*aw))] := FRElement(FR_Fam,D[i]*aw);
-							else
-								res_Con[Position(K_repr_words,K_representant(D[i]*aw))] := FRElement([[[L1[i]],[L2[x]]]],[(1,2)],[1]);
-							fi;
-						fi;
-					fi;
-				od;
-			fi;
-		od;
-		return res_Con;
-
-	fi;
-	Print("!!!!!!!!!!!!!!!!!Achtung ab hier geschieht größter Quatsch!!!!!!!!!!!!!!\n");
-	#So g is a word of length >1:
-	if IsOne(Activity(g)) then
-	#Test for Conjugator with trivial Activity
-		L1 := conjugators_grig_rek(State(g,x_1),State(h,x_1));
-		L2 := conjugators_grig_rek(State(g,x_2),State(h,x_2));
-		Info(InfoFRCP,3,"  Sub Conjugatoren ",State(h,x_1),",",State(g,x_1)," : ",L1,"\n");
-		Info(InfoFRCP,3,"  Sub Conjugatoren ",State(h,x_2),",",State(g,x_2)," : ",L2,"\n");
-		#See Lemma 6.16 for <g1,g2<in Grig,  <=> g1=v(a,d)l g2=v(d,a)l
-		#So <K_repr[i],K_repr[j]> in Grig  <=> j in [17-x mod 16 +1, 25-x mod 16 +1]
-		res_Con := [];
-		for i in [1..16] do
-			if IsBound(L1[i]) then
-				#Find second entry:
-				for x in [((17-i) mod 16) +1,((25-i) mod 16) +1] do
-					if IsBound(L2[x]) then
-						if x>8 then
-							Info(InfoFRCP,3,"  Conjugator gefunden mit Tau :",i,",",x,"\n");
-							Info(InfoFRCP,3,"    Gefundens Elm: ",dw*D[i],"\n");
-							Info(InfoFRCP,3,"    zugehöriger Rep: ",K_representant(dw*D[i]),"\n");
-							Info(InfoFRCP,3,"    Eingefügt an Position: ",Position(K_repr_words,K_representant(dw*D[i])),"\n");
-							if L1[i]=FRElement(FR_Fam,K_repr_words[i]) and L2[x]=FRElement(FR_Fam,K_repr_words[x]) then
-								res_Con[Position(K_repr_words,K_representant(dw*D[i]))] := FRElement(FR_Fam,dw*D[i]);
-							else #Could always compute the words as generators, but seems uneccassary
-								res_Con[Position(K_repr_words,K_representant(dw*D[i]))] := FRElement([[[L1[i]],[L2[x]]]],[()],[1]);
-							fi;
-						else 
-							Info(InfoFRCP,3,"  Conjugator gefunden mit Tau :",i,",",x,"\n");
-							Info(InfoFRCP,3,"     Gefundens Elm: ",D[i],"\n");
-							Info(InfoFRCP,3,"     zugehöriger Rep: ",K_representant(D[i]),"\n");
-							Info(InfoFRCP,3,"     Eingefügt an Position: ",Position(K_repr_words,K_representant(D[i])),"\n");
-							if L1[i]=FRElement(FR_Fam,K_repr_words[i]) and L2[x]=FRElement(FR_Fam,K_repr_words[x]) then
-								res_Con[Position(K_repr_words,K_representant(D[i]))] := FRElement(FR_Fam,D[i]);
-							else								
-								res_Con[Position(K_repr_words,K_representant(D[i]))] := FRElement([[[L1[i]],[L2[x]]]],[()],[1]);
-							fi;
-						fi;
-					fi;
-				od;
-			fi;
-		od;
-		if Size(res_Con) >0 then
-			return res_Con;
-		fi;
-		#Test for Conjugator with non-trivial Activity
-		L1 := conjugators_grig_rek(State(g,x_1),State(h,x_2));
-		L2 := conjugators_grig_rek(State(g,x_2),State(h,x_1));
-		res_Con := [];
-		Info(InfoFRCP,3,"  Sub Conjugatoren ",State(h,x_1),",",State(g,x_2)," mit Tau: ",L1,"\n");
-		Info(InfoFRCP,3,"  Sub Conjugatoren ",State(h,x_2),",",State(g,x_1)," mit Tau: ",L2,"\n");
-		for i in [1..16] do
-			if IsBound(L1[i]) then
-				#Find second entry:
-				for x in [((17-i) mod 16) +1,((25-i) mod 16) +1] do
-					if IsBound(L2[x]) then
-						if x>8 then
-							Info(InfoFRCP,3,"  Conjugator gefunden mit Tau :",i,",",x,"\n");
-							Info(InfoFRCP,3,"    Gefundens Elm: ",dw*D[i]*aw,"\n");
-							Info(InfoFRCP,3,"    zugehöriger Rep: ",K_representant(dw*D[i]*aw),"\n");
-							Info(InfoFRCP,3,"    Eingefügt an Position: ",Position(K_repr_words,K_representant(dw*D[i]*aw)),"\n");
-							if L1[i]=FRElement(FR_Fam,K_repr_words[i]) and L2[x]=FRElement(FR_Fam,K_repr_words[x]) then
-								res_Con[Position(K_repr_words,K_representant(dw*D[i]*aw))] := FRElement(FR_Fam,dw*D[i]*aw);
-							else							
-								res_Con[Position(K_repr_words,K_representant(dw*D[i]*aw))] := FRElement([[[L1[i]],[L2[x]]]],[(1,2)],[1]);
-							fi;
-						else 
-							Info(InfoFRCP,3,"  Conjugator gefunden mit Tau :",i,",",x,"\n");
-							Info(InfoFRCP,3,"    Gefundens Elm: ",D[i]*aw,"\n");
-							Info(InfoFRCP,3,"    zugehöriger Rep: ",K_representant(D[i]*aw),"\n");
-							Info(InfoFRCP,3,"    Eingefügt an Position: ",Position(K_repr_words,K_representant(D[i]*aw)),"\n");
-							if L1[i]=FRElement(FR_Fam,K_repr_words[i]) and L2[x]=FRElement(FR_Fam,K_repr_words[x]) then
-								res_Con[Position(K_repr_words,K_representant(D[i]*aw))] := FRElement(FR_Fam,D[i]*aw);
-							else
-								res_Con[Position(K_repr_words,K_representant(D[i]*aw))] := FRElement([[[L1[i]],[L2[x]]]],[(1,2)],[1]);
-							fi;
-						fi;
-					fi;
-				od;
-			fi;
-		od;
-		return res_Con;
-	else
-		L1 := conjugators_grig_rek(State(g,x_1)*State(g,x_2),State(h,x_1)*State(h,x_2));
-		if Size(L1) > 0 then
-			return [FRElement([[[L1[1]],[State(g,x_1),L1[1],State(h,x_1)]]],[()],[1])];
-		fi;
-		L1 := conjugators_grig_rek(State(g,x_1)*State(g,x_2),State(h,x_2)*State(h,x_1));
-		if Size(L1) > 0 then
-			return [FRElement([[[L1[1]],[State(g,x_1),L1[1],State(h,x_2)]]],[(x_1,x_2)],[1])];
+			L2 := conjugators_grig_rek(State(g,x_2),State(h,x_1));
+			return Merge_Ls(L1,L2,true);
 		else
-			return [];
-		fi;
-				#Test for Conjugator with trivial Activity
-		L1 := conjugators_grig_rek(State(g,x_1)*State(g,x_2),State(h,x_1)*State(h,x_2));
-		Info(InfoFRCP,3,"  Sub Conjugatoren ",State(h,x_1),",",State(g,x_1)," : ",L1,"\n");
-		Info(InfoFRCP,3,"  Sub Conjugatoren ",State(h,x_2),",",State(g,x_2)," : ",L2,"\n");
-		#See Lemma 6.16 for <g1,g2<in Grig,  <=> g1=v(a,d)l g2=v(d,a)l
-		#So <K_repr[i],K_repr[j]> in Grig  <=> j in [17-x mod 16 +1, 25-x mod 16 +1]
-		res_Con := [];
-		for i in [1..16] do
-			if IsBound(L1[i]) then
-				#Find second entry:
-				for x in [((17-i) mod 16) +1,((25-i) mod 16) +1] do
-					if IsBound(L2[x]) then
-						if x>8 then
-							Info(InfoFRCP,3,"  Conjugator gefunden mit Tau :",i,",",x,"\n");
-							Info(InfoFRCP,3,"    Gefundens Elm: ",dw*D[i],"\n");
-							Info(InfoFRCP,3,"    zugehöriger Rep: ",K_representant(dw*D[i]),"\n");
-							Info(InfoFRCP,3,"    Eingefügt an Position: ",Position(K_repr_words,K_representant(dw*D[i])),"\n");
-							if L1[i]=FRElement(FR_Fam,K_repr_words[i]) and L2[x]=FRElement(FR_Fam,K_repr_words[x]) then
-								res_Con[Position(K_repr_words,K_representant(dw*D[i]))] := FRElement(FR_Fam,dw*D[i]);
-							else #Could always compute the words as generators, but seems uneccassary
-								res_Con[Position(K_repr_words,K_representant(dw*D[i]))] := FRElement([[[L1[i]],[L2[x]]]],[()],[1]);
-							fi;
-						else 
-							Info(InfoFRCP,3,"  Conjugator gefunden mit Tau :",i,",",x,"\n");
-							Info(InfoFRCP,3,"     Gefundens Elm: ",D[i],"\n");
-							Info(InfoFRCP,3,"     zugehöriger Rep: ",K_representant(D[i]),"\n");
-							Info(InfoFRCP,3,"     Eingefügt an Position: ",Position(K_repr_words,K_representant(D[i])),"\n");
-							if L1[i]=FRElement(FR_Fam,K_repr_words[i]) and L2[x]=FRElement(FR_Fam,K_repr_words[x]) then
-								res_Con[Position(K_repr_words,K_representant(D[i]))] := FRElement(FR_Fam,D[i]);
-							else								
-								res_Con[Position(K_repr_words,K_representant(D[i]))] := FRElement([[[L1[i]],[L2[x]]]],[()],[1]);
-							fi;
-						fi;
-					fi;
+		#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-    |g| > 1, act(g) = (1,2)    -#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
+			#Test for Conjugator with trivial Activity
+			g1 :=State(g,x_1)^-1;
+			h1 :=State(h,x_1);
+			g1 := K_representant(g1![2]);
+			h1 := K_representant(h1![2]);
+			L1 := conjugators_grig_rek(State(g,x_1)*State(g,x_2),State(h,x_1)*State(h,x_2));
+			if Size(L1) > 0 then
+				L2 := [];
+				for x in L1 do
+					L2[Position(K_repr_words,K_representant(K_representant(g1)*K_repr_words[Position(L1,x)]*K_representant(h1)))] := State(g,x_1)^-1*x*State(h,x_1);
 				od;
+				res_Con := Merge_Ls(L1,L2,false);
+				if Size(res_Con) >0 then
+					return res_Con;
+				fi;
 			fi;
-		od;
-		if Size(res_Con) >0 then
-			return res_Con;
+			#Test for Conjugator with non-trivial Activity
+			L1 := conjugators_grig_rek(State(g,x_1)*State(g,x_2),State(h,x_2)*State(h,x_1));
+			if Size(L1) = 0 then
+				return [];
+			fi;
+			L2 := [];
+			for x in L1 do
+				L2[Position(K_repr_words,K_representant(K_representant(g1)*K_repr_words[Position(L1,x)]*K_representant(h1)))] := State(g,x_1)^-1*x*State(h,x_1);
+			od;	
+			return Merge_Ls(L1,L2,true);	
 		fi;
-		#Test for Conjugator with non-trivial Activity
-		L1 := conjugators_grig_rek(State(h,x_1),State(g,x_2));
-		L2 := conjugators_grig_rek(State(h,x_2),State(g,x_1));
-		res_Con := [];
-		Info(InfoFRCP,3,"  Sub Conjugatoren ",State(h,x_1),",",State(g,x_2)," mit Tau: ",L1,"\n");
-		Info(InfoFRCP,3,"  Sub Conjugatoren ",State(h,x_2),",",State(g,x_1)," mit Tau: ",L2,"\n");
-		for i in [1..16] do
-			if IsBound(L1[i]) then
-				#Find second entry:
-				for x in [((17-i) mod 16) +1,((25-i) mod 16) +1] do
-					if IsBound(L2[x]) then
-						if x>8 then
-							Info(InfoFRCP,3,"  Conjugator gefunden mit Tau :",i,",",x,"\n");
-							Info(InfoFRCP,3,"    Gefundens Elm: ",dw*D[i]*aw,"\n");
-							Info(InfoFRCP,3,"    zugehöriger Rep: ",K_representant(dw*D[i]*aw),"\n");
-							Info(InfoFRCP,3,"    Eingefügt an Position: ",Position(K_repr_words,K_representant(dw*D[i]*aw)),"\n");
-							if L1[i]=FRElement(FR_Fam,K_repr_words[i]) and L2[x]=FRElement(FR_Fam,K_repr_words[x]) then
-								res_Con[Position(K_repr_words,K_representant(dw*D[i]*aw))] := FRElement(FR_Fam,dw*D[i]*aw);
-							else							
-								res_Con[Position(K_repr_words,K_representant(dw*D[i]*aw))] := FRElement([[[L1[i]],[L2[x]]]],[(1,2)],[1]);
-							fi;
-						else 
-							Info(InfoFRCP,3,"  Conjugator gefunden mit Tau :",i,",",x,"\n");
-							Info(InfoFRCP,3,"    Gefundens Elm: ",D[i]*aw,"\n");
-							Info(InfoFRCP,3,"    zugehöriger Rep: ",K_representant(D[i]*aw),"\n");
-							Info(InfoFRCP,3,"    Eingefügt an Position: ",Position(K_repr_words,K_representant(D[i]*aw)),"\n");
-							if L1[i]=FRElement(FR_Fam,K_repr_words[i]) and L2[x]=FRElement(FR_Fam,K_repr_words[x]) then
-								res_Con[Position(K_repr_words,K_representant(D[i]*aw))] := FRElement(FR_Fam,D[i]*aw);
-							else
-								res_Con[Position(K_repr_words,K_representant(D[i]*aw))] := FRElement([[[L1[i]],[L2[x]]]],[(1,2)],[1]);
-							fi;
-						fi;
-					fi;
-				od;
-			fi;
-		od;
-		return res_Con;
+	end;
 
-	fi;
-end;
-Conjugators_Grig := function(g,h) 
-	local Res,r;
 	Res:= conjugators_grig_rek(g,h);
 	Print("Result of rekursive computation: ",Res,"\n");
 	for r in Res do
 		if g^r<>h then
-		 Print("nicht alles so gut....\n");
-		 Print("Problem bei ",Position(Res,r),"\n");
+		 Print("Fatal Error....\n");
+		 Print("Problem at ",Position(Res,r),"\n");
 		fi;		
 	od;
 	if Size(Res) = 0 then
-		return [];
+		return fail;
 	fi;
-	for r in Res do
-		return r;
-	od;
+	return Representative(Res);
 end;
 calc_dr := function(g)
 	local a,b,c,d,K_repr,D,dw,i,Fam,FR_Fam;
