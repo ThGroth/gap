@@ -363,61 +363,8 @@ state_to_grig := function(w)
 	od;
 	return Res;
 end;
-conjugate_to_a := function (g)
-	local a,b,c,d,g1,g1_modL,l,Allowed_reps,Connected_conjs,con_at_1,con_word,con,Centr,Centr_con,Con_tuple,K_repr,Fam,FR_Fam;
-	a:=4;
-	b:=1;
-	c:=2;
-	d:=3;
-	if IsOne(Activity(g)) then
-		return [];
-	fi;
-	if not IsOne(State(g,1)*State(g,2)) then
-		return [];
-	fi;
-	g1 := State(g,1);
-	#L_gen := [[b],[a,b,a],[b,a,d,a,b,a,d,a],[a,b,a,d,a,b,a,d]];
-	g1_modL:=L_Decomposition(g1![2]); #ARGH... ![2] nich so gut...
-	Fam := FamilyObj(g![2]);
-	FR_Fam := g![1];
-	l:=g1_modL[2];
-	g1_modL:=LetterRepAssocWord(g1_modL[1]);
-	#Print("g1_modL: ",g1_modL,"\n");
-	#Print("l: ",l,"\n");
-	Allowed_reps:= [[],[a,d],[a,d,a,d,a,d],[a,d,a,d]];
-	if not g1_modL in Allowed_reps then
-		return [];
-	fi;
-	#See Lemma 6.18 for the appix conjugator
-	Connected_conjs := [[],[c],[a,c],[c,a,c]];
-	con := Connected_conjs[Position(Allowed_reps,g1_modL)];
-
-	con_at_1 := shorten_word(compute_conjugates_of_word(l,Reversed(g1_modL)));
-	#Print("Conjugator in gen_L: <",con_at_1,",1>",con,"\n");
-	con_word := state_to_grig(con_at_1);
-	Append(con_word,con);
-	#Print("Conjugator in gen_Grig: ",con_word,"\n");
-	#Determine Cosets of K in which the conjugator lies.
-	#See Roskov CP Lemma3 for centralizer of a
-	Centr_con := List([[],[a],[a,d,a,d],[a,d,a,d,a]],x -> AssocWordByLetterRep(Fam,Concatenation(con_word,x)));
-	#Enumeration of K_repr.:
-	#[[],a,ad,ada,adad,adada,adadada,adadada,b,ba,bad,bada,badad,badada,badadad,badadada]
-	K_repr := [[],[a],[a,d],[a,d,a],[a,d,a,d],[a,d,a,d,a],[a,d,a,d,a,d],[a,d,a,d,a,d,a],[b],[b,a],[b,a,d],[b,a,d,a],[b,a,d,a,d],[b,a,d,a,d,a],[b,a,d,a,d,a,d],[b,a,d,a,d,a,d,a]];
-	Con_tuple:= [];
-	for con in Centr_con do
-		Con_tuple[Position(K_repr,LetterRepAssocWord(K_representant(con)))] := FRElement(FR_Fam,con);
-	od;	
-	#Some Final Test just to be shure....
-	#Print(g,"\n");
-	for con in Con_tuple do
-		if g^con <> FRElement(FR_Fam,AssocWordByLetterRep(Fam,[a])) then
-			Print("Ups.. das sollte nicht sein...\n");
-		fi;
-	od;
-	return Con_tuple;
-end;	
 GRIG_CON := function(g,h)
-local a,b,c,d,Fam,FR_Fam,aw,dw,ae,be,ce,de,Alph,x_1,x_2,K_repr,K_repr_words,D,Merge_Ls,conjugators_grig_rek,Res,r;
+local a,b,c,d,Fam,FR_Fam,aw,dw,ae,be,ce,de,Alph,x_1,x_2,K_repr,K_repr_words,D,ConTup_a,Check,Merge_Ls,conjugators_grig_rek,Res,r;
 ################################       (Local) GLOBALS           ####################################
 	a:= 4;
 	b:= 1;
@@ -434,15 +381,67 @@ local a,b,c,d,Fam,FR_Fam,aw,dw,ae,be,ce,de,Alph,x_1,x_2,K_repr,K_repr_words,D,Me
 	Alph:=Alphabet(g);
 	x_1 := Alph[1];
 	x_2 := Alph[2];
+
 	#Precomputed K-representatives:
+	#[[],a,ad,ada,adad,adada,adadada,adadada,b,ba,bad,bada,badad,badada,badadad,badadada]
 	K_repr := [[],[a],[a,d],[a,d,a],[a,d,a,d],[a,d,a,d,a],[a,d,a,d,a,d],[a,d,a,d,a,d,a],[b],[b,a],[b,a,d],[b,a,d,a],[b,a,d,a,d],[b,a,d,a,d,a],[b,a,d,a,d,a,d],[b,a,d,a,d,a,d,a]];
 	K_repr_words := List(K_repr,x->AssocWordByLetterRep(Fam,x));
 	
 	#Precomputed words, which decompose to the K_repr.: <K_repr[i]·l,f(K_repr[i])·l'> = D[i]·<l,l'>
 	D:= List([[],[c],[c,a,c,a],[c,a,c,a,c],[c,a,c,a,c,a,c,a],[c,a,c,a,c,a,c,a,c],[c,a,c,a,c,a,c,a,c,a,c,a],[c,a,c,a,c,a,c,a,c,a,c,a,c],[a,d,a],[a,d,a,c],[a,d,a,c,a,c,a],[a,d,a,c,a,c,a,c],[a,d,a,c,a,c,a,c,a,c,a],[a,d,a,c,a,c,a,c,a,c,a,c],[a,d,a,c,a,c,a,c,a,c,a,c,a,c,a],[a,d,a,c,a,c,a,c,a,c,a,c,a,c,a,c]],x->AssocWordByLetterRep(Fam,x));
-
+	#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%   Helping Functions    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+	#TeporaryChek functin:
+	Check := function(s,g,h,C)
+		local c;
+		for c in C do
+			if g^c <> h then
+				Print("Error at ",s,"\n");
+				Print("Error happened here: g=",g,", and h=",h,", and Conjugator c=",c," number: ",Position(C,c),"in ",C,"\n");
+				return 32;
+			fi;
+		od;
+		return 42;
+	end;
+	#Computes the conjugator tuple for the pair (g,a): 
+	ConTup_a := function (g)
+		local g1,g1_modL,l,Allowed_reps,Connected_conjs,con_at_1,con_word,con,Centr_a,Con_tuple;
+		if IsOne(Activity(g)) then
+			return [];
+		fi;
+		if not IsOne(State(g,1)*State(g,2)) then
+			return [];
+		fi;
+		g1 := State(g,1);
+		#L_gen := [[b],[a,b,a],[b,a,d,a,b,a,d,a],[a,b,a,d,a,b,a,d]];
+		g1_modL:=L_Decomposition(g1![2]); #ARGH... ![2] nich so gut...
+		l:=g1_modL[2];
+		g1_modL:=LetterRepAssocWord(g1_modL[1]);
+		#See Lemma lem:conjugators_of_a for Details
+		Allowed_reps:= [[],[a,d],[a,d,a,d,a,d],[a,d,a,d]];
+		if not g1_modL in Allowed_reps then
+			return [];
+		fi;
+		#See Lemma lem:conjugators_of_a for the appix conjugator
+		Connected_conjs := [[],[c],[a,c],[c,a,c]];
+		con := Connected_conjs[Position(Allowed_reps,g1_modL)];
+		#resulting conjugator is of the form <l^((g_1modL^-1)),1>·con
+		con_at_1 := compute_conjugates_of_word(l,Reversed(g1_modL));
+		con_word := state_to_grig(con_at_1);
+		Append(con_word,con);
+		Info(InfoFRCP,4,"Conjugator in gen_L: <",con_at_1,",1>",con,"\nConjugator in gen_Grig: ",con_word,"\n");
+		#Determine Cosets of K in which the conjugator lies.
+		#See Roskov CP Lemma3 for centralizer of a
+		Centr_a := List([[],[a],[a,d,a,d],[a,d,a,d,a]],x -> AssocWordByLetterRep(Fam,Concatenation(con_word,x)));
+		Con_tuple:= [];
+		for con in Centr_a do
+			Con_tuple[Position(K_repr,LetterRepAssocWord(K_representant(con)))] := FRElement(FR_Fam,con);
+		od;	
+		Check("ConTup_a",g,ae,Con_tuple);
+		return Con_tuple;
+	end;	
+	#Finds all Elements <l1,l2> with <l1,l2> in Grig, for l1 in L1, l2 in L2 and return result as Conjugator tuple.
 	Merge_Ls := function(L1,L2,with_action)
-		local aw_w,aw_t,dw_w,res_Con,i;	
+		local aw_w,aw_t,dw_w,res_Con,i,x;	
 		aw_w := One(aw);
 		aw_t := ();
 		dw_w := One(dw);
@@ -450,8 +449,8 @@ local a,b,c,d,Fam,FR_Fam,aw,dw,ae,be,ce,de,Alph,x_1,x_2,K_repr,K_repr_words,D,Me
 			aw_w := aw;
 			aw_t := (x_1,x_2);
 		fi;
-		Info(InfoFRCP,3,"Computing ",g,",",h,"  Sub Conjugators: ",L1,"\n");
-		Info(InfoFRCP,3,"Computing ",g,",",h,"  Sub Conjugators: ",L2,"\n");
+		Info(InfoFRCP,4,"Computing ",g,",",h,"  Sub Conjugators: ",L1,"\n");
+		Info(InfoFRCP,4,"Computing ",g,",",h,"  Sub Conjugators: ",L2,"\n");
 		#See Lemma 6.16 for <g1,g2<in Grig,  <=> g1=v(a,d)l g2=v(d,a)l
 		#So <K_repr[i],K_repr[j]> in Grig  <=> j in [17-x mod 16 +1, 25-x mod 16 +1]
 		res_Con := [];
@@ -465,7 +464,7 @@ local a,b,c,d,Fam,FR_Fam,aw,dw,ae,be,ce,de,Alph,x_1,x_2,K_repr,K_repr_words,D,Me
 						else
 							dw_w := One(dw);
 						fi;
-						Info(InfoFRCP,3,"Computing ",g,",",h,"  Conjugator found:",i,",",x,"\n");
+						Info(InfoFRCP,4,"Computing ",g,",",h,"  Conjugator found:",i,",",x,"\n");
 						#Info(InfoFRCP,3,"Computing ",g,",",h,"    Found Elm: ",dw_w*D[i],"\n");
 						#Info(InfoFRCP,3,"Computing ",g,",",h,"    corresp. Rep: ",K_representant(dw_w*D[i]),"\n");
 						#Info(InfoFRCP,3,"Computing ",g,",",h,"    Insert at position: ",Position(K_repr_words,K_representant(dw_w*D[i])),"\n");
@@ -482,8 +481,8 @@ local a,b,c,d,Fam,FR_Fam,aw,dw,ae,be,ce,de,Alph,x_1,x_2,K_repr,K_repr_words,D,Me
 	end;
 
 	conjugators_grig_rek := function(g,h)
-		local Centr_bc, Centr_d, L1, L2, res_Con, g1, h1, x;
-		Info(InfoFRCP,2,"Compute Conjugator for pair: ",g,",",h,".\n");
+		local Centr_bc, Centr_d, L1, L1_temp, L2, res_Con, g1, h1, x ,y;
+		Info(InfoFRCP,3,"Compute Conjugator for pair: ",g,",",h,".\n");
 		if Activity(g) <> Activity(h) then
 			return [];
 		fi;
@@ -508,7 +507,7 @@ local a,b,c,d,Fam,FR_Fam,aw,dw,ae,be,ce,de,Alph,x_1,x_2,K_repr,K_repr_words,D,Me
 			fi;
 		fi;
 		if g=ae then
-			return List(conjugate_to_a(h),x->x^-1);
+			return List(ConTup_a(h),x->x^-1);
 		fi;
 		if g in [be,ce,de] then
 			if h in [be,ce,de,One(h),ae] then
@@ -521,6 +520,7 @@ local a,b,c,d,Fam,FR_Fam,aw,dw,ae,be,ce,de,Alph,x_1,x_2,K_repr,K_repr_words,D,Me
 				L2 := conjugators_grig_rek(State(g,x_2),State(h,x_2));
 				res_Con := Merge_Ls(L1,L2,false);
 				if Size(res_Con) >0 then
+					Check("h>1 trivial",g,h,res_Con);
 					return res_Con;
 				fi;
 			fi;		
@@ -531,6 +531,7 @@ local a,b,c,d,Fam,FR_Fam,aw,dw,ae,be,ce,de,Alph,x_1,x_2,K_repr,K_repr_words,D,Me
 				return [];
 			fi;
 			L2 := conjugators_grig_rek(State(g,x_2),State(h,x_1));
+			Check("h>1 nontrivial",g,h,Merge_Ls(L1,L2,true));
 			return Merge_Ls(L1,L2,true);
 		fi;
 		#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-    |g| > 1, act(g) = 1    -#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
@@ -541,6 +542,7 @@ local a,b,c,d,Fam,FR_Fam,aw,dw,ae,be,ce,de,Alph,x_1,x_2,K_repr,K_repr_words,D,Me
 				L2 := conjugators_grig_rek(State(g,x_2),State(h,x_2));
 				res_Con := Merge_Ls(L1,L2,false);
 				if Size(res_Con) >0 then
+					Check("g>1, act = 1, trivial",g,h,res_Con);
 					return res_Con;
 				fi;
 			fi;	
@@ -550,6 +552,7 @@ local a,b,c,d,Fam,FR_Fam,aw,dw,ae,be,ce,de,Alph,x_1,x_2,K_repr,K_repr_words,D,Me
 				return [];
 			fi;
 			L2 := conjugators_grig_rek(State(g,x_2),State(h,x_1));
+			Check("g>1, act = 1, non-trivial",g,h,Merge_Ls(L1,L2,true));
 			return Merge_Ls(L1,L2,true);
 		else
 		#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-    |g| > 1, act(g) = (1,2)    -#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
@@ -560,12 +563,20 @@ local a,b,c,d,Fam,FR_Fam,aw,dw,ae,be,ce,de,Alph,x_1,x_2,K_repr,K_repr_words,D,Me
 			h1 := K_representant(h1![2]);
 			L1 := conjugators_grig_rek(State(g,x_1)*State(g,x_2),State(h,x_1)*State(h,x_2));
 			if Size(L1) > 0 then
-				L2 := [];
+				res_Con := [];
 				for x in L1 do
+					#Force that only <x,g1xh1> is checked. #Seems to be a bit too complicated, may be simplified.
+					L1_temp := [];
+					L1_temp[Position(L1,x)]:=x;
+					L2 := [];
 					L2[Position(K_repr_words,K_representant(K_representant(g1)*K_repr_words[Position(L1,x)]*K_representant(h1)))] := State(g,x_1)^-1*x*State(h,x_1);
+					L2 :=Merge_Ls(L1_temp,L2,false);
+					for y in L2 do
+						res_Con[Position(L2,y)] := y;
+					od;
 				od;
-				res_Con := Merge_Ls(L1,L2,false);
 				if Size(res_Con) >0 then
+				  Check("g>1, act = (1,2), trivial",g,h,res_Con);
 					return res_Con;
 				fi;
 			fi;
@@ -574,16 +585,25 @@ local a,b,c,d,Fam,FR_Fam,aw,dw,ae,be,ce,de,Alph,x_1,x_2,K_repr,K_repr_words,D,Me
 			if Size(L1) = 0 then
 				return [];
 			fi;
-			L2 := [];
+			res_Con := [];
 			for x in L1 do
+				#Force that only <x,g1xh1> is checked.
+				L1_temp := [];
+				L1_temp[Position(L1,x)]:=x;
+				L2 := [];
 				L2[Position(K_repr_words,K_representant(K_representant(g1)*K_repr_words[Position(L1,x)]*K_representant(h1)))] := State(g,x_1)^-1*x*State(h,x_1);
-			od;	
-			return Merge_Ls(L1,L2,true);	
+				L2 :=Merge_Ls(L1_temp,L2,true);
+				for y in L2 do
+					res_Con[Position(L2,y)] := y;
+				od;
+			od;
+			Check("g>1, act = (1,2), non-trivial",g,h,res_Con);
+			return res_Con;
 		fi;
 	end;
 
 	Res:= conjugators_grig_rek(g,h);
-	Print("Result of rekursive computation: ",Res,"\n");
+	Info(InfoFRCP,3,"Result of rekursive computation: ",Res,"\n");
 	for r in Res do
 		if g^r<>h then
 		 Print("Fatal Error....\n");
