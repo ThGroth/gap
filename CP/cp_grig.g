@@ -1,12 +1,15 @@
-GRIG_CON := function(g,h)
+MAKE_READ_WRITE_GLOBAL("GRIG_CON@");
+UNBIND_GLOBAL("GRIG_CON@");
+BindGlobal("GRIG_CON@", function(g,h)
 local a, b, c, d, Fam, FR_Fam, aw, dw, ae, be, ce, de, Alph, x_1, x_2, K_repr, K_repr_words, D, ConTup_a, Check, alternating_a_form, shorten_word, compute_conjugates, compute_conjugates_of_word, L_Decomp, Compute_K_rep, L_word_to_Grig, Merge_Ls, conjugators_grig_rek, Res, r;
 ################################       (Local) GLOBALS           ####################################
-	a:= 4;
-	b:= 1;
-	c:= 2;
-	d:= 3;
-	Fam := FamilyObj(g![2]);
-	FR_Fam:= g![1];
+	a:= 4;											##	
+	b:= 1;											##
+	c:= 2;											##			This information should be gained from the group!
+	d:= 3;											##      FRElement([[[4],[2]],[[4,3]],[[],[1]],[[],[]]],[(),(),(),(1,2)],[?])
+	Fam := FamilyObj(g![2]);		##
+	FR_Fam:= g![1];							##
+#####################################################################################################
 	aw :=AssocWordByLetterRep(Fam,[a]);  
 	dw :=AssocWordByLetterRep(Fam,[d]);
 	ae := FRElement(FR_Fam,AssocWordByLetterRep(Fam,[a]));
@@ -482,8 +485,55 @@ local a, b, c, d, Fam, FR_Fam, aw, dw, ae, be, ce, de, Alph, x_1, x_2, K_repr, K
 		return fail;
 	fi;
 	return Representative(Res);
-end;
-
+end);
+###################################################################
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+#%%%%%%%%%%%%%%%%%%%%      IsConjugate        %%%%%%%%%%%%%%%%%%%%#
+#%%%%%%%%%%%%%%%%%%%%	 RepresentativeActionOp %%%%%%%%%%%%%%%%%%%%#
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+###################################################################	
+InstallMethod(IsConjugate,
+	"For Grig",
+	#The attribute FullSCVertex charakterizes all FullSCGroups
+	[ IsFRGroup,IsFRElement and IsFRElementStdRep,IsFRElement and IsFRElementStdRep], 
+  function(G,a,b)
+  	local con;
+  	if Alphabet(G) <> Alphabet(a) or Alphabet(G) <> Alphabet(b) then
+  		return false;
+  	fi;
+  	if a = b then #Spare Computing Time in trivial case.
+  	 return true; 
+  	fi;
+  	if HasName(G) and Name(G) = "Grig" then
+  		if GRIG_CON@(a,b) = fail then
+  			return false;
+  		else
+  			return true;
+  		fi;
+  	else
+  		TryNextMethod();
+  	fi;
+ 	end);
+InstallOtherMethod(RepresentativeActionOp,
+	"Computes a conjugator in Grig ",
+	#The attribute FullSCVertex charakterizes all FullSCGroups
+	[ IsFRGroup,IsFRElement and IsFRElementStdRep,IsFRElement and IsFRElementStdRep], 
+  function(G,a,b)
+  	local con;
+  	if Alphabet(G) <> Alphabet(a) or Alphabet(G) <> Alphabet(b) then
+  		return fail;
+  	fi;
+  	if a = b then #Spare Computing Time in trivial case.
+  	 return One(a); 
+  	fi;
+  	if HasName(G) and Name(G) = "Grig" then
+  		return GRIG_CON@(a,b);
+  	else
+  		TryNextMethod();
+  	fi;
+ 	end);
+ 	
+  
 
 
 

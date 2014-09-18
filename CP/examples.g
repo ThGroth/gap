@@ -1,4 +1,3 @@
-
 #Testelements
 
 #Grig
@@ -23,43 +22,25 @@ bounded_4 := FRElement(["b4","c4"],[[[],[],[],[2]],[[2],[],[],[]]],[(),(1,2,3,4)
 
 Elms := [[b,"b"],[c,"c"],[d,"d"],[a,"a"],[adding_machine,"adding_machine"],[finitary,"finitary"],[nonfin,"nonfin"],[add_10,"add_10"],[add_4,"add_4"],[bounded_4,"bounded_4"]];
 #Groups
+Grig := Group(b,c,d,a);
+SetName(Grig,"Grig");
+
 RAut_bin := FullSCGroup([1,2],IsFRElement);
 FAut_bin := FullSCGroup([1,2],IsFiniteStateFRElement);
 Poly0_bin := FullSCGroup([1,2],IsBoundedFRElement);
 FINAut_bin := FullSCGroup([1,2],IsFinitaryFRElement);
 RAut_4 := FullSCGroup([1,2,3,4],IsFRElement);
-Grig := Group(States(b));
 
 Groups := [[RAut_bin,"RAut_bin"],[FAut_bin,"FAut_bin"],[Poly0_bin,"Poly0_bin"],[FINAut_bin,"FINAut_bin"],[RAut_4,"RAut_4"]];
 
-
-Test@ := function()
-	local G,a,b,con;
-#alle Elemente an allen Gruppen testen...
-	Print("This may take some time....");
-	for G in Groups do
-		Print("Check Conjugacy in Group ",G[2],":\n\n");
-		for a in Elms do
-			for b in Elms do
-				Print("IsConjugate(",a[2],",",b[2],"): ",IsConjugate(G[1],a[1],b[1]),"\n");
-				Print("PrepresentativeActionOP(",a[2],",",b[2],"): ");
-				con := RepresentativeActionOp(G[1],a[1],b[1]);
-				if con = fail then 
-					Print("fail\n");
-				else
-					if a[1]^con = b[1] then 
-						Print("found ");
-					else
-						Print("Error false positive!!!!!!");
-					fi;
-					if FullSCFilter(G[1])(con) then
-						Print("with nec. Property\n");
-					else
-						Print("Not in ",G[2],"!!!!!!\n");
-					fi;
-				fi;
-			od;
-		od;		
+TEST_Grig:= function()
+	local testelements, f, g;
+	testelements:=[a,b,c,d,a^(b*a*d*a*c),a^(d*a*d*a*c*a*c),b^(d*a*c*a),b^((d*a*c*a)^13*(b*a)^5),c^(a*d)];
+	for f in testelements do
+		for g in testelements do
+			Print("Conjugacy of pair(",f![2],",",g![2],"): ",IsConjugate(Grig,f,g),"\n");
+			Print("                  by: ",RepresentativeActionOp(Grig,f,g),"\n");
+		od;
 	od;
 end;
-
+		
