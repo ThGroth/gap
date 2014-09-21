@@ -330,9 +330,6 @@ local a, b, c, d, Fam, FR_Fam, aw, dw, ae, be, ce, de, Alph, x_1, x_2, K_repr, K
 							dw_w := One(dw);
 						fi;
 						Info(InfoFRCP,4,"Computing ",g,",",h,"  Conjugator found:",i,",",x,"\n");
-						#Info(InfoFRCP,3,"Computing ",g,",",h,"    Found Elm: ",dw_w*D[i],"\n");
-						#Info(InfoFRCP,3,"Computing ",g,",",h,"    corresp. Rep: ",Compute_K_rep(dw_w*D[i]),"\n");
-						#Info(InfoFRCP,3,"Computing ",g,",",h,"    Insert at position: ",Position(K_repr_words,Compute_K_rep(dw_w*D[i])),"\n");
 						if L1[i]=FRElement(FR_Fam,K_repr_words[i]) and L2[x]=FRElement(FR_Fam,K_repr_words[x]) then
 							res_Con[Position(K_repr_words,Compute_K_rep(dw_w*D[i]*aw_w))] := FRElement(FR_Fam,dw_w*D[i]*aw_w);
 						else #Could always compute the words as generators, but seems uneccassary
