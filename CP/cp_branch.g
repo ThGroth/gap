@@ -1,91 +1,38 @@
-STARTS := [["Grig",[]]];
-InStart := function(G)
-	local H;
-	for H in STARTS do
-		if H[1] = G then
-			return true;
-		fi;
-	od;
-	return false;
-end;
-SetStart := function(G,L)
-	local H;
-	for H in STARTS do
-		if H[1] = G then
-			H[2] := L;
-			return;
-		fi;
-	od;
-	Add(STARTS,[G,L]);
-	return;
-end;
-GetStart := function(G)
-	local H;
-	for H in STARTS do
-		if H[1] = G then
-			return H[2];
-		fi;
-	od;
-	return fail;
-end;
-AddGrig_toStart := function()
-	local x,S,SL,y,C,RR,K,find_elm;
-	K := BranchingSubgroup(Grig);
-	RR := RightCosets(Grig,K);
-	find_elm := function(elm)
-		local i;
-		for i in [1..Size(RR)] do
-			if elm in RR[i] then
-				return i;
+if START_CP_BRANCH@ <> [] then
+	InstallValue(START_CP_BRANCH@,[]);
+fi;
+InstallMethod(InitConjugateForBranchGroups,"Branch Groups",[IsFRGroup,IsList], function(G,L)
+		if not HasName(G) then 
+			SetName(G,Concatenation("BranchGroup_",String(Size(START_CP_BRANCH@)+1)));
+		fi;		
+		Add(START_CP_BRANCH@,[Name(G),L]);
+	end);
+MAKE_READ_WRITE_GLOBAL("CONJUGATORS_BRANCH@");
+UNBIND_GLOBAL("CONJUGATORS_BRANCH@");
+BindGlobal("CONJUGATORS_BRANCH@",function(G,g,h)
+	local Start, Gen, K, R,RR, Conjugators_branch_rek,l,k,InStart,GetStart;
+	InStart := function(N)
+		local H;
+		for H in START_CP_BRANCH@ do
+			if H[1] = N then
+				return true;
 			fi;
 		od;
+		return false;
 	end;
-	S := [];
-	for x in GeneratorsOfGroup(Grig) do
-		SL := [];
-		for y in GeneratorsOfGroup(Grig) do
-			Print("Computing y=",y,"\n");
-			if x = y then
-				if x=a then
-					C:= [];
-					C[find_elm(One(a))] := One(a);
-					C[find_elm(a)] := a;
-					C[find_elm(a*d*a*d)] := a*d*a*d;
-					C[find_elm(d*a*d)] := d*a*d;
-					Add(SL,C);
-				fi;
-				if x = d then
-					C:= [];
-					C[find_elm(One(a))] := One(a);
-					C[find_elm(a*d*a)] := a*d*a;
-					C[find_elm(a*d*a*d)] := a*d*a*d;
-					C[find_elm(d)] := d;
-					C[find_elm(b)] := b;
-					C[find_elm(b*a*d*a)] := b*a*d*a;
-					C[find_elm(b*a*d*a*d)] := b*a*d*a*d;
-					C[find_elm(c)] := c;
-					Add(SL,C);
-				fi;
-				if x in [b,c] then
-					C:=[];
-					C[find_elm(One(a))] := One(a);
-					C[find_elm(d)] := d;
-					C[find_elm(b)] := b;
-					C[find_elm(c)] := c;					
-				Add(SL,C);
-				fi;
-			else
-				Add(SL,[]);
+	GetStart := function(G)
+		local H;
+		for H in START_CP_BRANCH@ do
+			if H[1] = G then
+				return H[2];
 			fi;
 		od;
-		Add(S,SL);
-	od;
-	SetStart(Name(Grig),S);
-end;
-CONJUGATORS_BRANCH := function(G,g,h)
-	local Start, Gen, K, R,RR, Conjugators_branch_rek,l,k;
-	if HasName(G) and InStart(Name(G)) then
+		return fail;
+	end;
+	if Alphabet(G) = [1,2] and HasName(G) and InStart(Name(G)) then
 		Start := GetStart(Name(G));
+	else
+		return fail;
 	fi;
 	Gen := GeneratorsOfGroup(G);
 	#Branching Subgroup
@@ -206,9 +153,103 @@ CONJUGATORS_BRANCH := function(G,g,h)
 		fi;
 	end;
 	return Conjugators_branch_rek(g,h);
+end);
+
+###################################################################
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+#%%%%%%%%%%%%%%%%%%%%      IsConjugate        %%%%%%%%%%%%%%%%%%%%#
+#%%%%%%%%%%%%%%%%%%%%	 RepresentativeActionOp %%%%%%%%%%%%%%%%%%%%#
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+###################################################################
+InstallOtherMethod(RepresentativeActionOp,
+	"Computes a conjugator in the given Branch group ",
+	[ IsFRGroup,IsFRElement,IsFRElement], 
+	function(G,g,h)
+		local con;
+		con := CONJUGATORS_BRANCH@(G,g,h);
+		if con <> fail then
+			if Size(con)>0 then
+				return Representative(con);
+			fi;
+			return fail;
+		fi;
+		TryNextMethod();
+		end);
+InstallMethod(IsConjugate,
+	"For Branch Groups",
+	[ IsFRGroup,IsFRElement,IsFRElement], 
+  function(G,g,h)
+  	local con;
+  	Print("For Branch Method...\n");
+  	con := CONJUGATORS_BRANCH@(G,g,h);
+		if con <> fail then
+			if Size(con)>0 then
+				return true;
+			fi;
+			return false;
+		fi;
+		Print("Next Method...\n");
+		TryNextMethod();
+		end);	
+	
+######################################Example###########################################
+AddGrig_toStart := function()
+	local G,a,b,c,d,x,S,SL,y,C,RR,K,find_elm;
+	G:= GrigorchukGroup;
+	a:= G.1; b:=G.2; c:=G.3; d:=G.4;
+	K := BranchingSubgroup(G);
+	RR := RightCosets(G,K);
+	find_elm := function(elm)
+		local i;
+		for i in [1..Size(RR)] do
+			if elm in RR[i] then
+				return i;
+			fi;
+		od;
+	end;
+	S := [];
+	for x in GeneratorsOfGroup(G) do
+		SL := [];
+		for y in GeneratorsOfGroup(G) do
+			if x = y then
+				if x=a then
+					C:= [];
+					C[find_elm(One(a))] := One(a);
+					C[find_elm(a)] := a;
+					C[find_elm(a*d*a*d)] := a*d*a*d;
+					C[find_elm(d*a*d)] := d*a*d;
+					Add(SL,C);
+				fi;
+				if x = d then
+					C:= [];
+					C[find_elm(One(a))] := One(a);
+					C[find_elm(a*d*a)] := a*d*a;
+					C[find_elm(a*d*a*d)] := a*d*a*d;
+					C[find_elm(d)] := d;
+					C[find_elm(b)] := b;
+					C[find_elm(b*a*d*a)] := b*a*d*a;
+					C[find_elm(b*a*d*a*d)] := b*a*d*a*d;
+					C[find_elm(c)] := c;
+					Add(SL,C);
+				fi;
+				if x in [b,c] then
+					C:=[];
+					C[find_elm(One(a))] := One(a);
+					C[find_elm(d)] := d;
+					C[find_elm(b)] := b;
+					C[find_elm(c)] := c;					
+				Add(SL,C);
+				fi;
+			else
+				Add(SL,[]);
+			fi;
+		od;
+		Add(S,SL);
+	od;
+	InitConjugateForBranchGroups(G,S);
 end;
-	
-	
+
+
 	
 	
 	
