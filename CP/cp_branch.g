@@ -34,6 +34,9 @@ BindGlobal("CONJUGATORS_BRANCH@",function(G,g,h)
 	else
 		return fail;
 	fi;
+	if g = h then
+		return One(g);
+	fi;
 	Gen := GeneratorsOfGroup(G);
 	#Branching Subgroup
 	K := BranchingSubgroup(G);

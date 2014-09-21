@@ -1,0 +1,50 @@
+#Readme...
+
+
+#Example Usage: 
+#Elements:
+b := FRElement(["b","c","d","a"],[[[4],[2]],[[4],[3]],[[],[1]],[[],[]]],[(),(),(),(1,2)],[1]);
+c := State(b,2);
+d := State(c,2);
+a := State(b,1);
+adding_machine := FRElement([[[],[1]]],[(1,2)],[1]);
+finitary := FRElement(["fin"],[[[a],[]]],[(1,2)],[1]);
+nonfin := FRElement(["nin"],[[[1],[a]]],[()],[1]); 
+
+#Groups:
+Grig := Group(b,c,d,a);
+SetName(Grig,"Grig");
+RAut_bin := FullSCGroup([1,2],IsFRElement);
+FAut_bin := FullSCGroup([1,2],IsFiniteStateFRElement);
+Poly0_bin := FullSCGroup([1,2],IsBoundedFRElement);
+FINAut_bin := FullSCGroup([1,2],IsFinitaryFRElement);
+RAut_4 := FullSCGroup([1,2,3,4],IsFRElement);
+
+#Tests:
+######################### Grigorchuk Group  #############################
+TEST_Grig:= function()
+	local testelements, f, g;
+	testelements:=[a,b,c,d,a^(b*a*d*a*c),a^(d*a*d*a*c*a*c),b^(d*a*c*a),b^((d*a*c*a)^13*(b*a)^5),c^(a*d)];
+	for f in testelements do
+		for g in testelements do
+			Print("Conjugacy of pair(",f![2],",",g![2],"): ",IsConjugate(Grig,f,g),"\n");
+			Print("                  by: ",RepresentativeActionOp(Grig,f,g),"\n");
+		od;
+	od;
+end;
+######################### functionalRekursive  #############################
+RepresentativeActionOp(RAut_bin,adding_machine,adding_machine^{-1});
+RepresentativeActionOp(RAut_bin,adding_machine^b,adding_machine);
+
+######################### Bounded  #############################
+RepresentativeActionOp(Poly0_bin,adding_machine,adding_machine^{-1});
+
+######################### Finitary  #############################
+RepresentativeActionOp(FINAut_bin,adding_machine,adding_machine^{-1});
+RepresentativeActionOp(FINAut_bin,adding_machine^finitary,adding_machine);
+
+######################### Branch Groups  #############################
+G:= GrigorchukGroup;
+AddGrig_toStart();
+RepresentativeActionOp(G,G.2,G.2);
+RepresentativeActionOp(G,G.1^G.2,G.1);
